@@ -6,7 +6,11 @@ import { db } from '../firebaseConfig';
 import { useState, useEffect } from 'react';
 
 const ACTIVITIES = [
+  { id: 3, name: 'Hand Fan Challenge' },
+  { id: 4, name: 'Earthquake Resistant Structure' },
   { id: 5, name: 'Stretch Speed & Gracefulness' },
+  { id: 6, name: 'Reaction Board Challenge' },
+  { id: 7, name: 'Breathing Pace Trainer' },
 ];
 
 const RANK_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];

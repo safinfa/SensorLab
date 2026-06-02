@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function LeaderboardDetailScreen({ navigation, route }) {
@@ -26,12 +26,86 @@ export default function LeaderboardDetailScreen({ navigation, route }) {
 
         {/* Final Score */}
         <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>Final Grace Score</Text>
-          <Text style={styles.scoreNumber}>{entry.totalScore} / 100</Text>
+          <Text style={styles.scoreLabel}>
+            {entry.activityId === 5 ? 'Final Grace Score' : 'Average Reaction Time (ms)'}
+          </Text>
+          <Text style={styles.scoreNumber}>{entry.totalScore}</Text>
         </View>
 
-        {/* Movement Breakdown */}
-        {entry.results && (
+        {/* Activity 3 — Hand Fan Results */}
+        {entry.activityId === 3 && entry.bestReading && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Best Reading</Text>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Fan Design</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.bestReading.design}</Text>
+              </View>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Material</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.bestReading.material}</Text>
+              </View>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Distance</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.bestReading.distance}</Text>
+              </View>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Bend Angle</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.bestReading.actualAngle}°</Text>
+              </View>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Estimated Force</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.bestReading.estimatedForce} N</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Activity 4 — Earthquake Results */}
+        {entry.activityId === 4 && entry.bestRound && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Best Round Results</Text>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Round</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>Round {entry.bestRound.round}</Text>
+              </View>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Distance Moved</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.bestRound.distanceMoved} cm</Text>
+              </View>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Peak Shake</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.bestRound.maxShake}</Text>
+              </View>
+            </View>
+            {entry.bestRound.beforePhotoUrl && (
+              <View>
+                <Text style={styles.sectionTitle}>Photos</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <Image source={{ uri: entry.bestRound.beforePhotoUrl }} style={{ width: '48%', height: 100, borderRadius: 10 }} />
+                  <Image source={{ uri: entry.bestRound.afterPhotoUrl }} style={{ width: '48%', height: 100, borderRadius: 10 }} />
+                </View>
+                <Text style={{ fontSize: 11, color: '#b0d4f1', textAlign: 'center', marginTop: 4 }}>Before / After</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Activity 5 — Movement Breakdown */}
+        {entry.activityId === 5 && entry.results && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Movement Breakdown</Text>
             {entry.results.map((r, i) => (
@@ -46,6 +120,56 @@ export default function LeaderboardDetailScreen({ navigation, route }) {
           </View>
         )}
 
+        {/* Activity 6 — Phase Breakdown */}
+        {entry.activityId === 6 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Phase Breakdown</Text>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Phase 1 — Dominant Hand</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.avgPhase1} ms</Text>
+              </View>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Phase 2 — Non-Dominant Hand</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.avgPhase2} ms</Text>
+              </View>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Phase 3 — Tracing Accuracy</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.avgPhase3}%</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Activity 7 — Breathing Breakdown */}
+        {entry.activityId === 7 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Breathing Results</Text>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>😌 At Rest</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.results?.rest} BPM</Text>
+              </View>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>🏃 After Jogging</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.results?.afterExercise1} BPM</Text>
+              </View>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>⭐ After Star Jumps</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.results?.afterExercise2} BPM</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Prediction */}
         {entry.prediction ? (
           <View style={styles.section}>
@@ -54,7 +178,7 @@ export default function LeaderboardDetailScreen({ navigation, route }) {
           </View>
         ) : null}
 
-        {/* Reflection / Comment */}
+        {/* Reflection */}
         {entry.reflection ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Their Reflection</Text>
@@ -111,8 +235,8 @@ const styles = StyleSheet.create({
     paddingBottom: 8, borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.1)',
   },
-  resultName: { fontSize: 13, color: '#d0e8ff' },
-  resultRight: { alignItems: 'flex-end' },
+  resultName: { fontSize: 13, color: '#d0e8ff', flex: 1, flexWrap: 'wrap' },
+  resultRight: { alignItems: 'flex-end', marginLeft: 8 },
   resultScore: { fontSize: 14, fontWeight: 'bold', color: '#ffe082' },
   resultVibration: { fontSize: 11, color: '#b0d4f1' },
   reflectionText: { fontSize: 14, color: '#e0f0ff', fontStyle: 'italic', lineHeight: 22 },

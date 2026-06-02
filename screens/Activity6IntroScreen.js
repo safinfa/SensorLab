@@ -1,13 +1,13 @@
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Speech from 'expo-speech';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 
-export default function Activity5IntroScreen({ navigation, route }) {
+export default function Activity6IntroScreen({ navigation, route }) {
   const teamName = route?.params?.teamName || 'Student';
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  const introText = 'Welcome to Activity 5: Stretch Speed and Gracefulness. In this activity, you will hold your phone in one hand and perform 3 guided movements. Movement 1: Slowly spin your hand in a full circle. Movement 2: Slowly move your hand up and down. Movement 3: Slowly move your hand side to side. The app will measure how smooth and graceful your movements are using the accelerometer. Tap Start Activity when you are ready.';
+  const introText = 'Welcome to Activity 6: Reaction Board Challenge. In this activity you will measure your reaction time, coordination, and improvement through repeated digital challenges. There are 3 phases. Phase 1: tap the button as fast as you can. Phase 2: repeat with your non-dominant hand. Phase 3: trace a moving shape on screen.';
 
   const toggleSpeech = () => {
     if (isSpeaking) {
@@ -36,32 +36,26 @@ export default function Activity5IntroScreen({ navigation, route }) {
           <Text style={styles.speakerLabel}>{isSpeaking ? 'Stop Reading' : 'Read Aloud'}</Text>
         </TouchableOpacity>
 
-        <Image source={require('../assets/act5_human.png')} style={styles.icon} resizeMode="contain" />
+        <Image source={require('../assets/act6_reaction.png')} style={styles.icon} resizeMode="contain" />
 
         <Text style={styles.description}>
-          In this activity, you will investigate how the human body moves by measuring speed, smoothness, and coordination during controlled movements. Using your phone's accelerometer, the app will track how graceful your movements are.
+          Students measure reaction time, coordination, and improvement through repeated digital and physical challenges.
         </Text>
 
         <View style={styles.objectiveBox}>
           <Text style={styles.objectiveTitle}>Your Objective?</Text>
-          <Text style={styles.objectiveItem}>• Hold your phone firmly in one hand throughout all movements.</Text>
-          <Text style={styles.objectiveItem}>• The app measures vibration — lower vibration = more graceful.</Text>
-          <Text style={styles.objectiveItem}>• Complete all 3 movements and review your results.</Text>
-          <Text style={styles.objectiveItem}>• Reflect on which movement was hardest to control.</Text>
-        </View>
-
-        <View style={styles.movementsBox}>
-          <Text style={styles.movementsTitle}>The 3 Movements:</Text>
-          <Text style={styles.movementItem}>🔵 Movement 1 — Slowly spin your hand in a full circle, keeping your arm extended.</Text>
-          <Text style={styles.movementItem}>🟢 Movement 2 — Slowly move your hand up and down in a straight line.</Text>
-          <Text style={styles.movementItem}>🟡 Movement 3 — Slowly move your hand side to side in a straight line.</Text>
+          <Text style={styles.objectiveItem}>• Phase 1: Tap the button as fast as possible when it appears.</Text>
+          <Text style={styles.objectiveItem}>• Phase 2: Repeat the challenge using your non-dominant hand.</Text>
+          <Text style={styles.objectiveItem}>• Phase 3: Trace a moving shape on the screen accurately.</Text>
+          <Text style={styles.objectiveItem}>• Each team member takes a turn in every phase.</Text>
+          <Text style={styles.objectiveItem}>• Compare results and reflect on what affects reaction time.</Text>
         </View>
 
         <TouchableOpacity
           style={styles.button}
           onPress={() => {
             Speech.stop();
-            navigation.navigate('Activity5Instructions', { teamName });
+            navigation.navigate('Activity6Instructions', { teamName });
           }}
         >
           <Text style={styles.buttonText}>Start Activity</Text>
@@ -85,15 +79,9 @@ const styles = StyleSheet.create({
   speakerLabel: { fontSize: 13, color: '#fff', fontWeight: '600' },
   icon: { width: 140, height: 140, marginBottom: 20 },
   description: { fontSize: 14, color: '#e0f0ff', textAlign: 'center', marginBottom: 24, lineHeight: 22 },
-  objectiveBox: { width: '100%', marginBottom: 16 },
+  objectiveBox: { width: '100%', marginBottom: 32 },
   objectiveTitle: { fontSize: 15, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 12 },
   objectiveItem: { fontSize: 13, color: '#d0e8ff', marginBottom: 8, lineHeight: 20 },
-  movementsBox: {
-    width: '100%', backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 16, padding: 16, marginBottom: 28,
-  },
-  movementsTitle: { fontSize: 14, fontWeight: 'bold', color: '#fff', marginBottom: 10, textAlign: 'center' },
-  movementItem: { fontSize: 13, color: '#d0e8ff', marginBottom: 10, lineHeight: 20 },
   button: {
     backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 25,
     paddingVertical: 14, paddingHorizontal: 60, alignItems: 'center',

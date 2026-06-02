@@ -5,9 +5,9 @@ import * as Speech from 'expo-speech';
 import { useState, useEffect, useRef } from 'react';
 
 const MOVEMENTS = [
-  { id: 1, name: 'Movement 1', description: 'Slowly raise your arm above your head and back down.' },
-  { id: 2, name: 'Movement 2', description: 'Slowly reach across your body to your opposite shoulder and back.' },
-  { id: 3, name: 'Movement 3', description: 'Slowly bend sideways at the waist, then return upright.' },
+  { id: 1, name: 'Movement 1', description: 'Slowly spin your hand in a full circle, keeping your arm extended. Repeat smoothly.' },
+  { id: 2, name: 'Movement 2', description: 'Slowly move your hand up and down in a straight line. Keep it controlled and steady.' },
+  { id: 3, name: 'Movement 3', description: 'Slowly move your hand side to side in a straight line. Keep it as smooth as possible.' },
 ];
 
 const RECORDING_DURATION = 10;
@@ -22,7 +22,6 @@ export default function Activity5ChallengeScreen({ navigation, route }) {
   const [vibrationLevel, setVibrationLevel] = useState(0);
   const [results, setResults] = useState([]);
 
-  // Use a ref to always have the latest movement index inside callbacks
   const currentMovementRef = useRef(0);
   const resultsRef = useRef([]);
   const vibrationSamples = useRef([]);
@@ -145,16 +144,24 @@ export default function Activity5ChallengeScreen({ navigation, route }) {
 
   return (
     <LinearGradient colors={['#4a90d9', '#1a3a5c']} style={styles.gradient}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} scrollEnabled={false}>
 
         {/* INTRO PHASE */}
         {phase === 'intro' && (
           <View style={styles.centeredBox}>
             <Text style={styles.title}>Activity 5 Challenge</Text>
-            <Text style={styles.subtitle}>You will perform 3 stretch movements.</Text>
+            <Text style={styles.subtitle}>You will perform 3 movements.</Text>
             <Text style={styles.subtitle}>Hold your phone in one hand throughout.</Text>
-            <Text style={styles.movementName}>{MOVEMENTS[0].name}</Text>
-            <Text style={styles.movementDesc}>{MOVEMENTS[0].description}</Text>
+
+            <View style={styles.movementPreviewBox}>
+              <Text style={styles.movementPreviewTitle}>The 3 Movements:</Text>
+              {MOVEMENTS.map((m) => (
+                <Text key={m.id} style={styles.movementPreviewItem}>
+                  {m.name}: {m.description}
+                </Text>
+              ))}
+            </View>
+
             <TouchableOpacity style={styles.button} onPress={() => startCountdown(0)}>
               <Text style={styles.buttonText}>Begin</Text>
             </TouchableOpacity>
@@ -251,7 +258,12 @@ const styles = StyleSheet.create({
   centeredBox: { width: '100%', alignItems: 'center' },
   title: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginBottom: 12, textAlign: 'center' },
   subtitle: { fontSize: 14, color: '#d0e8ff', marginBottom: 12, textAlign: 'center' },
-  movementName: { fontSize: 18, fontWeight: 'bold', color: '#ffe082', marginBottom: 8 },
+  movementPreviewBox: {
+    width: '100%', backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 16, padding: 16, marginBottom: 24,
+  },
+  movementPreviewTitle: { fontSize: 14, fontWeight: 'bold', color: '#fff', marginBottom: 10, textAlign: 'center' },
+  movementPreviewItem: { fontSize: 13, color: '#d0e8ff', marginBottom: 8, lineHeight: 20 },
   movementDesc: { fontSize: 14, color: '#e0f0ff', textAlign: 'center', marginBottom: 24, lineHeight: 22 },
   countdownNumber: { fontSize: 80, fontWeight: 'bold', color: '#ffe082', marginVertical: 20 },
   timerText: { fontSize: 20, fontWeight: 'bold', color: '#ffe082', marginBottom: 24 },

@@ -1,14 +1,14 @@
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Speech from 'expo-speech';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 
-export default function Activity5InstructionsScreen({ navigation, route }) {
+export default function Activity6InstructionsScreen({ navigation, route }) {
   const teamName = route?.params?.teamName || 'Student';
   const [prediction, setPrediction] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  const instructionsText = 'Here are your instructions. Hold your phone firmly in one hand. You will perform 3 movements. Movement 1: Slowly spin your hand in a full circle, keeping your arm extended. Movement 2: Slowly move your hand up and down in a straight line. Movement 3: Slowly move your hand side to side in a straight line. Move as slowly and smoothly as possible. Lower vibration means a higher score. Enter your prediction below, then tap Start Test.';
+  const instructionsText = 'Here are your instructions. Phase 1: A button will appear randomly on screen. Tap it as fast as you can. Phase 2: Repeat using your non-dominant hand. Phase 3: A shape will move across the screen. Trace it as accurately as possible. Each team member takes a turn for each phase.';
 
   const toggleSpeech = () => {
     if (isSpeaking) {
@@ -37,26 +37,20 @@ export default function Activity5InstructionsScreen({ navigation, route }) {
           <Text style={styles.speakerLabel}>{isSpeaking ? 'Stop Reading' : 'Read Aloud'}</Text>
         </TouchableOpacity>
 
-        <Image source={require('../assets/act5_human.png')} style={styles.icon} resizeMode="contain" />
+        <Image source={require('../assets/act6_reaction.png')} style={styles.icon} resizeMode="contain" />
 
         <View style={styles.instructionBox}>
           <Text style={styles.instructionTitle}>Instructions:</Text>
-          <Text style={styles.instructionItem}>• Hold the phone firmly in one hand throughout each movement.</Text>
-          <Text style={styles.instructionItem}>• Move as slowly and smoothly as possible — the app measures shakiness.</Text>
-          <Text style={styles.instructionItem}>• Each movement is timed — lower vibration = higher grace score.</Text>
-          <Text style={styles.instructionItem}>• You will perform 3 movements total before seeing your results.</Text>
-        </View>
-
-        <View style={styles.movementsBox}>
-          <Text style={styles.movementsTitle}>The 3 Movements:</Text>
-          <Text style={styles.movementItem}>🔵 Movement 1 — Slowly spin your hand in a full circle, keeping your arm extended.</Text>
-          <Text style={styles.movementItem}>🟢 Movement 2 — Slowly move your hand up and down in a straight line.</Text>
-          <Text style={styles.movementItem}>🟡 Movement 3 — Slowly move your hand side to side in a straight line.</Text>
+          <Text style={styles.instructionItem}>• Phase 1 — A button appears randomly. Tap it as fast as possible!</Text>
+          <Text style={styles.instructionItem}>• Phase 2 — Same challenge but use your non-dominant hand.</Text>
+          <Text style={styles.instructionItem}>• Phase 3 — Trace the moving shape on screen as accurately as you can.</Text>
+          <Text style={styles.instructionItem}>• Each team member rotates through all 3 phases.</Text>
+          <Text style={styles.instructionItem}>• Results are saved to the leaderboard after all phases.</Text>
         </View>
 
         <TextInput
           style={styles.predictionInput}
-          placeholder="Which movement do you predict will be hardest to keep smooth?"
+          placeholder="Predict your reaction time (e.g. I think I'll react in 0.3 seconds)..."
           placeholderTextColor="#aaa"
           value={prediction}
           onChangeText={setPrediction}
@@ -67,7 +61,7 @@ export default function Activity5InstructionsScreen({ navigation, route }) {
           style={styles.button}
           onPress={() => {
             Speech.stop();
-            navigation.navigate('Activity5Challenge', { teamName, prediction });
+            navigation.navigate('Activity6Challenge', { teamName, prediction });
           }}
         >
           <Text style={styles.buttonText}>Start Test</Text>
@@ -90,15 +84,9 @@ const styles = StyleSheet.create({
   speakerIcon: { fontSize: 18, marginRight: 6 },
   speakerLabel: { fontSize: 13, color: '#fff', fontWeight: '600' },
   icon: { width: 140, height: 140, marginBottom: 20 },
-  instructionBox: { width: '100%', marginBottom: 16 },
+  instructionBox: { width: '100%', marginBottom: 24 },
   instructionTitle: { fontSize: 15, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 12 },
   instructionItem: { fontSize: 13, color: '#d0e8ff', marginBottom: 8, lineHeight: 20 },
-  movementsBox: {
-    width: '100%', backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 16, padding: 16, marginBottom: 20,
-  },
-  movementsTitle: { fontSize: 14, fontWeight: 'bold', color: '#fff', marginBottom: 10, textAlign: 'center' },
-  movementItem: { fontSize: 13, color: '#d0e8ff', marginBottom: 10, lineHeight: 20 },
   predictionInput: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 16, padding: 16, fontSize: 14, color: '#fff',

@@ -1,13 +1,13 @@
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Speech from 'expo-speech';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 
-export default function Activity5IntroScreen({ navigation, route }) {
+export default function Activity7IntroScreen({ navigation, route }) {
   const teamName = route?.params?.teamName || 'Student';
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  const introText = 'Welcome to Activity 5: Stretch Speed and Gracefulness. In this activity, you will hold your phone in one hand and perform 3 guided movements. Movement 1: Slowly spin your hand in a full circle. Movement 2: Slowly move your hand up and down. Movement 3: Slowly move your hand side to side. The app will measure how smooth and graceful your movements are using the accelerometer. Tap Start Activity when you are ready.';
+  const introText = 'Welcome to Activity 7: Breathing Pace Trainer. In this activity, you will place your phone on your chest and the app will detect your breathing using the accelerometer. You will record your breathing at rest, then after two exercises, and compare the results.';
 
   const toggleSpeech = () => {
     if (isSpeaking) {
@@ -36,32 +36,27 @@ export default function Activity5IntroScreen({ navigation, route }) {
           <Text style={styles.speakerLabel}>{isSpeaking ? 'Stop Reading' : 'Read Aloud'}</Text>
         </TouchableOpacity>
 
-        <Image source={require('../assets/act5_human.png')} style={styles.icon} resizeMode="contain" />
+        <Image source={require('../assets/act7_breathing.png')} style={styles.icon} resizeMode="contain" />
 
         <Text style={styles.description}>
-          In this activity, you will investigate how the human body moves by measuring speed, smoothness, and coordination during controlled movements. Using your phone's accelerometer, the app will track how graceful your movements are.
+          Students analyse breathing patterns at rest and after exercise. The phone's accelerometer detects chest movement to count breaths per minute.
         </Text>
 
         <View style={styles.objectiveBox}>
           <Text style={styles.objectiveTitle}>Your Objective?</Text>
-          <Text style={styles.objectiveItem}>• Hold your phone firmly in one hand throughout all movements.</Text>
-          <Text style={styles.objectiveItem}>• The app measures vibration — lower vibration = more graceful.</Text>
-          <Text style={styles.objectiveItem}>• Complete all 3 movements and review your results.</Text>
-          <Text style={styles.objectiveItem}>• Reflect on which movement was hardest to control.</Text>
-        </View>
-
-        <View style={styles.movementsBox}>
-          <Text style={styles.movementsTitle}>The 3 Movements:</Text>
-          <Text style={styles.movementItem}>🔵 Movement 1 — Slowly spin your hand in a full circle, keeping your arm extended.</Text>
-          <Text style={styles.movementItem}>🟢 Movement 2 — Slowly move your hand up and down in a straight line.</Text>
-          <Text style={styles.movementItem}>🟡 Movement 3 — Slowly move your hand side to side in a straight line.</Text>
+          <Text style={styles.objectiveItem}>• Place your phone flat on your chest.</Text>
+          <Text style={styles.objectiveItem}>• Record your breathing rate at rest.</Text>
+          <Text style={styles.objectiveItem}>• Perform Exercise 1: Jog on the spot for 1 minute.</Text>
+          <Text style={styles.objectiveItem}>• Perform Exercise 2: Complete 100 star jumps.</Text>
+          <Text style={styles.objectiveItem}>• Record your breathing rate after each exercise.</Text>
+          <Text style={styles.objectiveItem}>• Compare how exercise affects your breathing.</Text>
         </View>
 
         <TouchableOpacity
           style={styles.button}
           onPress={() => {
             Speech.stop();
-            navigation.navigate('Activity5Instructions', { teamName });
+            navigation.navigate('Activity7Instructions', { teamName });
           }}
         >
           <Text style={styles.buttonText}>Start Activity</Text>
@@ -85,15 +80,9 @@ const styles = StyleSheet.create({
   speakerLabel: { fontSize: 13, color: '#fff', fontWeight: '600' },
   icon: { width: 140, height: 140, marginBottom: 20 },
   description: { fontSize: 14, color: '#e0f0ff', textAlign: 'center', marginBottom: 24, lineHeight: 22 },
-  objectiveBox: { width: '100%', marginBottom: 16 },
+  objectiveBox: { width: '100%', marginBottom: 32 },
   objectiveTitle: { fontSize: 15, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 12 },
   objectiveItem: { fontSize: 13, color: '#d0e8ff', marginBottom: 8, lineHeight: 20 },
-  movementsBox: {
-    width: '100%', backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 16, padding: 16, marginBottom: 28,
-  },
-  movementsTitle: { fontSize: 14, fontWeight: 'bold', color: '#fff', marginBottom: 10, textAlign: 'center' },
-  movementItem: { fontSize: 13, color: '#d0e8ff', marginBottom: 10, lineHeight: 20 },
   button: {
     backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 25,
     paddingVertical: 14, paddingHorizontal: 60, alignItems: 'center',

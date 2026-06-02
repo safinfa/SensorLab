@@ -4,11 +4,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 const activities = [
   { id: 1, image: require('../assets/act1_parachute.png'), active: false, screen: 'Activity1' },
   { id: 2, image: require('../assets/act2_sound.png'), active: false, screen: 'Activity2' },
-  { id: 3, image: require('../assets/act3_handfan.png'), active: false, screen: 'Activity3' },
-  { id: 4, image: require('../assets/act4_earthquake.png'), active: false, screen: 'Activity4' },
+  { id: 3, image: require('../assets/act3_handfan.png'), active: true, screen: 'Activity3' },
+  { id: 4, image: require('../assets/act4_earthquake.png'), active: true, screen: 'Activity4' },
   { id: 5, image: require('../assets/act5_human.png'), active: true, screen: 'Activity5' },
-  { id: 6, image: require('../assets/act6_reaction.png'), active: false, screen: 'Activity6' },
-  { id: 7, image: require('../assets/act7_breathing.png'), active: false, screen: 'Activity7' },
+  { id: 6, image: require('../assets/act6_reaction.png'), active: true, screen: 'Activity6' },
+  { id: 7, image: require('../assets/act7_breathing.png'), active: true, screen: 'Activity7' },
 ];
 
 export default function ActivityListScreen({ navigation, route }) {
