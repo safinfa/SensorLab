@@ -1,5 +1,9 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import Activity1IntroScreen from './screens/Activity1IntroScreen';
+import Activity1InstructionsScreen from './screens/Activity1InstructionsScreen';
+import Activity1ChallengeScreen from './screens/Activity1ChallengeScreen';
+import Activity1ReflectionScreen from './screens/Activity1ReflectionScreen';
 import Activity2IntroScreen from './screens/Activity2IntroScreen';
 import Activity2InstructionsScreen from './screens/Activity2InstructionsScreen';
 import Activity2ChallengeScreen from './screens/Activity2ChallengeScreen';
@@ -30,17 +34,13 @@ import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import HomeScreen from './screens/HomeScreen';
 import ActivityListScreen from './screens/ActivityListScreen';
+import ProfileScreen from './screens/ProfileScreen';
+import PreviousActivitiesScreen from './screens/PreviousActivitiesScreen';
+import SettingsScreen from './screens/SettingsScreen';
+import TeamsScreen from './screens/TeamsScreen';
 import { View, Text } from 'react-native';
 
 const Stack = createNativeStackNavigator();
-
-function ComingSoonScreen() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a3a5c' }}>
-      <Text style={{ color: '#fff', fontSize: 20 }}>Coming Soon!</Text>
-    </View>
-  );
-}
 
 export default function App() {
   return (
@@ -49,7 +49,15 @@ export default function App() {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen name="PreviousActivities" component={PreviousActivitiesScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Teams" component={TeamsScreen} />
         <Stack.Screen name="ActivityList" component={ActivityListScreen} />
+        <Stack.Screen name="Activity1" component={Activity1IntroScreen} />
+        <Stack.Screen name="Activity1Instructions" component={Activity1InstructionsScreen} />
+        <Stack.Screen name="Activity1Challenge" component={Activity1ChallengeScreen} />
+        <Stack.Screen name="Activity1Reflection" component={Activity1ReflectionScreen} />
         <Stack.Screen name="Activity2" component={Activity2IntroScreen} />
         <Stack.Screen name="Activity2Instructions" component={Activity2InstructionsScreen} />
         <Stack.Screen name="Activity2Challenge" component={Activity2ChallengeScreen} />

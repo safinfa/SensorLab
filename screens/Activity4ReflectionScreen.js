@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert,
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Speech from 'expo-speech';
 import { useState } from 'react';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, getDoc, doc } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
 import { Profanity } from '@2toad/profanity';
 
@@ -46,16 +46,27 @@ export default function Activity4ReflectionScreen({ navigation, route }) {
     setSubmitting(true);
     try {
       const user = auth.currentUser;
+
+      // Fetch profile picture
+      let profilePictureUrl = null;
+      try {
+        const profileDoc = await getDoc(doc(db, 'teams', user?.uid));
+        if (profileDoc.exists()) {
+          profilePictureUrl = profileDoc.data()?.profilePictureUrl || null;
+        }
+      } catch (e) {}
+
       await addDoc(collection(db, 'leaderboard'), {
         teamName: teamName || 'Unknown Team',
         userId: user?.uid || 'anonymous',
         activityId: 4,
         activityName: 'Earthquake Resistant Structure',
-        totalScore: bestRound ? Math.round(100 - bestRound.distanceMoved * 10) : 0,
+        totalScore: bestRound ? Math.max(0, Math.round(1000 - bestRound.distanceMoved * 100)) : 0,
         bestRound,
         results,
         prediction: prediction || '',
         reflection,
+        profilePictureUrl,
         createdAt: new Date().toISOString(),
       });
       Alert.alert('Submitted! 🎉', 'Your results have been saved!', [

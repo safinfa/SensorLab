@@ -3,11 +3,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const menuItems = [
   { id: 1, label: 'START NEW ACTIVITY', image: require('../assets/start_new_activity.png'), active: true, screen: 'ActivityList' },
-  { id: 2, label: 'PREVIOUS ACTIVITIES', image: require('../assets/previous_activities.png'), active: false },
-  { id: 3, label: 'VIEW PROFILE', image: require('../assets/view_profile.png'), active: false },
-  { id: 4, label: 'SETTINGS', image: require('../assets/settings.png'), active: false },
+  { id: 2, label: 'PREVIOUS ACTIVITIES', image: require('../assets/previous_activities.png'), active: true, screen: 'PreviousActivities' },
+  { id: 3, label: 'VIEW PROFILE', image: require('../assets/view_profile.png'), active: true, screen: 'Profile' },
+  { id: 4, label: 'SETTINGS', image: require('../assets/settings.png'), active: true, screen: 'Settings' },
   { id: 5, label: 'LEADERBOARD', image: require('../assets/leaderboard.png'), active: true, screen: 'Leaderboard' },
-  { id: 6, label: 'TEAMS', image: require('../assets/teams.png'), active: false },
+  { id: 6, label: 'TEAMS', image: require('../assets/teams.png'), active: true, screen: 'Teams' },
 ];
 
 export default function HomeScreen({ navigation, route }) {

@@ -29,8 +29,6 @@ export default function Activity2ChallengeScreen({ navigation, route }) {
   const countdownRef = useRef(null);
   const peakDbRef = useRef(0);
   const resultsRef = useRef([]);
-  const baselineRef = useRef(0);
-  const calibratingRef = useRef(false);
 
   useEffect(() => {
     Audio.requestPermissionsAsync();
@@ -43,9 +41,9 @@ export default function Activity2ChallengeScreen({ navigation, route }) {
 
   const convertToDb = (metering) => {
     if (metering === undefined || metering === null) return 0;
-    if (metering < -60) return Math.max(0, Math.round((metering + 160) * 0.3));
-    if (metering < -30) return Math.round(30 + (metering + 60) * 0.8);
-    return Math.round(60 + (metering + 30) * 1.2);
+    const normalized = Math.max(0, metering + 160);
+    const scaled = Math.pow(normalized / 160, 3) * 100;
+    return Math.min(120, Math.round(scaled));
   };
 
   const getDbColor = (db) => {
@@ -83,7 +81,6 @@ export default function Activity2ChallengeScreen({ navigation, route }) {
       peakDbRef.current = 0;
       setPeakDb(0);
       setCurrentDb(0);
-      baselineRef.current = 0;
 
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
@@ -98,33 +95,11 @@ export default function Activity2ChallengeScreen({ navigation, route }) {
       recordingRef.current = recording;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      // Calibrate baseline for first 500ms
-      calibratingRef.current = true;
-      const calibrationSamples = [];
-      const calibrationInterval = setInterval(async () => {
+      meteringIntervalRef.current = setInterval(async () => {
         if (recordingRef.current) {
           const status = await recordingRef.current.getStatusAsync();
           if (status.metering !== undefined) {
-            calibrationSamples.push(status.metering);
-          }
-        }
-      }, 100);
-
-      setTimeout(() => {
-        clearInterval(calibrationInterval);
-        if (calibrationSamples.length > 0) {
-          baselineRef.current = calibrationSamples.reduce((a, b) => a + b, 0) / calibrationSamples.length;
-        }
-        calibratingRef.current = false;
-      }, 500);
-
-      // Poll metering every 100ms
-      meteringIntervalRef.current = setInterval(async () => {
-        if (recordingRef.current && !calibratingRef.current) {
-          const status = await recordingRef.current.getStatusAsync();
-          if (status.metering !== undefined) {
-            const adjustedMetering = status.metering - baselineRef.current;
-            const db = convertToDb(adjustedMetering);
+            const db = convertToDb(status.metering);
             setCurrentDb(db);
             if (db > peakDbRef.current) {
               peakDbRef.current = db;
@@ -134,7 +109,6 @@ export default function Activity2ChallengeScreen({ navigation, route }) {
         }
       }, 100);
 
-      // Stop after 3 seconds
       setTimeout(() => {
         stopRecording();
       }, RECORD_DURATION);

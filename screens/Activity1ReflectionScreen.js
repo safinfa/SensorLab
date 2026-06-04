@@ -3,18 +3,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Speech from 'expo-speech';
 import { useState } from 'react';
 import { collection, addDoc, getDoc, doc } from 'firebase/firestore';
-import { auth, db } from '../firebaseConfig';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, db, storage } from '../firebaseConfig';
 import { Profanity } from '@2toad/profanity';
 
 const profanity = new Profanity();
 
-export default function Activity2ReflectionScreen({ navigation, route }) {
-  const { teamName, prediction, results } = route?.params || {};
+export default function Activity1ReflectionScreen({ navigation, route }) {
+  const { teamName, prediction, results, dropHeight, objectMass } = route?.params || {};
   const [reflection, setReflection] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
 
-  const reflectionPrompt = 'Time to reflect! Think about your sound measurements. Which sound was loudest? Were you surprised by any results? How could these noise levels affect health or the environment? Write your thoughts below.';
+  const reflectionPrompt = 'Time to reflect! Think about your parachute results. Which design had the longest drop time? How did the drag force differ between designs? Did your results match your prediction?';
 
   const toggleSpeech = () => {
     if (isSpeaking) {
@@ -30,8 +32,9 @@ export default function Activity2ReflectionScreen({ navigation, route }) {
     }
   };
 
-  const loudest = results?.length > 0
-    ? results.reduce((max, r) => r.actualDb > max.actualDb ? r : max, results[0])
+  const bestDesign = results?.length > 1
+    ? results.slice(1).reduce((best, r) =>
+        parseFloat(r.dropTime) > parseFloat(best.dropTime) ? r : best, results[1])
     : null;
 
   const handleSubmit = async () => {
@@ -56,26 +59,53 @@ export default function Activity2ReflectionScreen({ navigation, route }) {
         }
       } catch (e) {}
 
+      // Upload best design video to Firebase Storage
+      let bestVideoUrl = null;
+      if (bestDesign?.videoUri) {
+        try {
+          setUploadProgress('Uploading video...');
+          const response = await fetch(bestDesign.videoUri);
+          const blob = await response.blob();
+          const timestamp = Date.now();
+          const storageRef = ref(storage, `activity1/${user?.uid}/${timestamp}_best.mp4`);
+          await uploadBytes(storageRef, blob);
+          bestVideoUrl = await getDownloadURL(storageRef);
+          setUploadProgress('Video uploaded! Saving results...');
+        } catch (uploadError) {
+          console.log('Video upload error:', uploadError);
+          setUploadProgress('Video upload failed, saving results without video...');
+        }
+      }
+
       await addDoc(collection(db, 'leaderboard'), {
         teamName: teamName || 'Unknown Team',
         userId: user?.uid || 'anonymous',
-        activityId: 2,
-        activityName: 'Sound Pollution Hunter',
-        totalScore: loudest?.actualDb || 0,
-        loudestSound: loudest,
-        results,
+        activityId: 1,
+        activityName: 'Parachute Drop Challenge',
+        totalScore: bestDesign ? parseFloat(bestDesign.dropTime) * 1000 : 0,
+        bestDesign: {
+          ...bestDesign,
+          videoUrl: bestVideoUrl,
+          videoUri: null,
+        },
+        results: results.map(r => ({ ...r, videoUri: null })),
+        dropHeight,
+        objectMass,
         prediction: prediction || '',
         reflection,
         profilePictureUrl,
         createdAt: new Date().toISOString(),
       });
+
       Alert.alert('Submitted! 🎉', 'Your results have been saved!', [
-        { text: 'View Leaderboard', onPress: () => navigation.navigate('Leaderboard', { teamName, activityId: 2 }) }
+        { text: 'View Leaderboard', onPress: () => navigation.navigate('Leaderboard', { teamName, activityId: 1 }) }
       ]);
     } catch (error) {
+      console.log('Submit error:', error);
       Alert.alert('Error', 'Could not save results. Please try again.');
     } finally {
       setSubmitting(false);
+      setUploadProgress('');
     }
   };
 
@@ -90,12 +120,15 @@ export default function Activity2ReflectionScreen({ navigation, route }) {
 
         <Text style={styles.title}>Reflection Time 🧠</Text>
 
-        {loudest && (
+        {bestDesign && (
           <View style={styles.summaryBox}>
-            <Text style={styles.summaryTitle}>🏆 Loudest Sound</Text>
-            <Text style={styles.loudestEmoji}>{loudest.emoji}</Text>
-            <Text style={styles.loudestName}>{loudest.sound}</Text>
-            <Text style={styles.loudestDb}>{loudest.actualDb} dB</Text>
+            <Text style={styles.summaryTitle}>🏆 Best Parachute Design</Text>
+            <Text style={styles.bestName}>{bestDesign.design}</Text>
+            <Text style={styles.bestTime}>{bestDesign.dropTime}s drop time</Text>
+            <Text style={styles.bestForce}>Drag Force: {bestDesign.dragForce} N</Text>
+            {bestDesign.videoUri && (
+              <Text style={styles.videoNote}>📹 Best drop video will be uploaded to leaderboard</Text>
+            )}
           </View>
         )}
 
@@ -103,19 +136,19 @@ export default function Activity2ReflectionScreen({ navigation, route }) {
           <Text style={styles.sectionTitle}>All Results:</Text>
           {results?.map((r, i) => (
             <View key={i} style={styles.resultRow}>
-              <Text style={styles.resultName}>{r.emoji} {r.sound}</Text>
-              <Text style={styles.resultDb}>{r.actualDb} dB</Text>
+              <Text style={styles.resultName}>{r.design}</Text>
+              <Text style={styles.resultTime}>{r.dropTime}s — {r.finalVelocity}m/s</Text>
             </View>
           ))}
         </View>
 
         <View style={styles.questionsBox}>
           <Text style={styles.sectionTitle}>Think About It:</Text>
-          <Text style={styles.question}>• Which sound was loudest? Were you surprised?</Text>
-          <Text style={styles.question}>• How did your predictions compare to actual results?</Text>
-          <Text style={styles.question}>• Were the noise levels you recorded dangerous?</Text>
-          <Text style={styles.question}>• How could these sound levels impact health or environment?</Text>
-          <Text style={styles.question}>• What did you learn about noise pollution?</Text>
+          <Text style={styles.question}>• Which design had the longest drop time?</Text>
+          <Text style={styles.question}>• How much did the parachute slow the fall?</Text>
+          <Text style={styles.question}>• What design features made the best parachute?</Text>
+          <Text style={styles.question}>• Did your results match your prediction?</Text>
+          <Text style={styles.question}>• How do real parachutes use these principles?</Text>
         </View>
 
         <TextInput
@@ -129,8 +162,20 @@ export default function Activity2ReflectionScreen({ navigation, route }) {
           textAlignVertical="top"
         />
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={submitting}>
-          <Text style={styles.submitButtonText}>{submitting ? 'Submitting...' : 'Submit & View Leaderboard'}</Text>
+        {uploadProgress ? (
+          <View style={styles.progressBox}>
+            <Text style={styles.progressText}>⏳ {uploadProgress}</Text>
+          </View>
+        ) : null}
+
+        <TouchableOpacity
+          style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
+          onPress={handleSubmit}
+          disabled={submitting}
+        >
+          <Text style={styles.submitButtonText}>
+            {submitting ? uploadProgress || 'Submitting...' : 'Submit & View Leaderboard'}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.endButton} onPress={() => navigation.navigate('Home', { teamName })}>
@@ -160,9 +205,10 @@ const styles = StyleSheet.create({
     marginBottom: 16, borderWidth: 2, borderColor: '#FFD700',
   },
   summaryTitle: { fontSize: 14, fontWeight: 'bold', color: '#FFD700', marginBottom: 4 },
-  loudestEmoji: { fontSize: 40, marginBottom: 4 },
-  loudestName: { fontSize: 16, color: '#fff', marginBottom: 4 },
-  loudestDb: { fontSize: 36, fontWeight: 'bold', color: '#ffe082' },
+  bestName: { fontSize: 18, color: '#fff', marginBottom: 4 },
+  bestTime: { fontSize: 32, fontWeight: 'bold', color: '#ffe082', marginBottom: 4 },
+  bestForce: { fontSize: 13, color: '#4caf50', fontWeight: 'bold' },
+  videoNote: { fontSize: 12, color: '#b0d4f1', marginTop: 8, fontStyle: 'italic' },
   allResultsBox: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 16, padding: 16, marginBottom: 16,
@@ -170,7 +216,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 15, fontWeight: 'bold', color: '#fff', marginBottom: 10 },
   resultRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   resultName: { fontSize: 13, color: '#d0e8ff' },
-  resultDb: { fontSize: 13, fontWeight: 'bold', color: '#ffe082' },
+  resultTime: { fontSize: 13, fontWeight: 'bold', color: '#ffe082' },
   questionsBox: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 16, padding: 16, marginBottom: 16,
@@ -182,10 +228,16 @@ const styles = StyleSheet.create({
     minHeight: 120, marginBottom: 20, borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
   },
+  progressBox: {
+    width: '100%', backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12, padding: 12, marginBottom: 12, alignItems: 'center',
+  },
+  progressText: { fontSize: 13, color: '#ffe082' },
   submitButton: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.85)',
     borderRadius: 25, paddingVertical: 14, alignItems: 'center', marginBottom: 12,
   },
+  submitButtonDisabled: { opacity: 0.6 },
   submitButtonText: { fontSize: 15, fontWeight: 'bold', color: '#1a3a5c', letterSpacing: 1 },
   endButton: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.15)',

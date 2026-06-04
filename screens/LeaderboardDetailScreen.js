@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Video, ResizeMode } from 'expo-av';
 
 export default function LeaderboardDetailScreen({ navigation, route }) {
   const { entry, teamName } = route?.params || {};
@@ -12,6 +13,17 @@ export default function LeaderboardDetailScreen({ navigation, route }) {
   return (
     <LinearGradient colors={['#4a90d9', '#1a3a5c']} style={styles.gradient}>
       <ScrollView contentContainerStyle={styles.container}>
+
+        {/* Profile Picture */}
+        {entry.profilePictureUrl ? (
+          <Image source={{ uri: entry.profilePictureUrl }} style={styles.detailAvatar} />
+        ) : (
+          <View style={styles.detailAvatarPlaceholder}>
+            <Text style={styles.detailAvatarInitial}>
+              {(entry.teamName || 'T')[0].toUpperCase()}
+            </Text>
+          </View>
+        )}
 
         {/* Rank Badge */}
         <View style={[styles.rankBadge, { borderColor: getRankColor(entry.rank) }]}>
@@ -27,10 +39,82 @@ export default function LeaderboardDetailScreen({ navigation, route }) {
         {/* Final Score */}
         <View style={styles.scoreBox}>
           <Text style={styles.scoreLabel}>
-            {entry.activityId === 5 ? 'Final Grace Score' : 'Average Reaction Time (ms)'}
+            {entry.activityId === 1 ? 'Best Drop Time (ms)' :
+             entry.activityId === 5 ? 'Final Grace Score' :
+             entry.activityId === 6 ? 'Average Reaction Time (ms)' :
+             entry.activityId === 7 ? 'Resting Breathing Rate (BPM)' :
+             entry.activityId === 4 ? 'Stability Score' :
+             entry.activityId === 3 ? 'Best Bend Angle (°)' :
+             entry.activityId === 2 ? 'Loudest Sound Recorded (dB)' :
+             'Score'}
           </Text>
           <Text style={styles.scoreNumber}>{entry.totalScore}</Text>
         </View>
+
+        {/* Activity 1 — Parachute Results */}
+        {entry.activityId === 1 && entry.bestDesign && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>🏆 Best Parachute Design</Text>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Design</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.bestDesign.design}</Text>
+              </View>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Drop Time</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.bestDesign.dropTime}s</Text>
+              </View>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Final Velocity</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.bestDesign.finalVelocity} m/s</Text>
+              </View>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Acceleration</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.bestDesign.acceleration} m/s²</Text>
+              </View>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Net Force</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.bestDesign.netForce} N</Text>
+              </View>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>Drag Force</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.bestDesign.dragForce} N</Text>
+              </View>
+            </View>
+            <View style={styles.resultRow}>
+              <Text style={styles.resultName}>G-Force</Text>
+              <View style={styles.resultRight}>
+                <Text style={styles.resultScore}>{entry.bestDesign.gForce} g</Text>
+              </View>
+            </View>
+            {entry.bestDesign.videoUrl ? (
+              <View style={styles.videoBox}>
+                <Text style={styles.videoTitle}>🎬 Best Drop Video</Text>
+                <Video
+                  source={{ uri: entry.bestDesign.videoUrl }}
+                  style={styles.video}
+                  useNativeControls
+                  resizeMode={ResizeMode.CONTAIN}
+                  shouldPlay={false}
+                />
+              </View>
+            ) : (
+              <View style={styles.noVideoBox}>
+                <Text style={styles.noVideoText}>📹 No video recorded for this drop</Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Activity 2 — Sound Results */}
         {entry.activityId === 2 && entry.loudestSound && (
@@ -224,6 +308,20 @@ export default function LeaderboardDetailScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
   container: { alignItems: 'center', paddingTop: 60, paddingBottom: 40, paddingHorizontal: 24 },
+
+  // Profile Picture
+  detailAvatar: {
+    width: 90, height: 90, borderRadius: 45,
+    borderWidth: 3, borderColor: '#fff', marginBottom: 12,
+  },
+  detailAvatarPlaceholder: {
+    width: 90, height: 90, borderRadius: 45,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 3, borderColor: '#fff', marginBottom: 12,
+  },
+  detailAvatarInitial: { fontSize: 36, fontWeight: 'bold', color: '#fff' },
+
   rankBadge: {
     width: 80, height: 80, borderRadius: 40,
     borderWidth: 3, justifyContent: 'center', alignItems: 'center',
@@ -237,7 +335,7 @@ const styles = StyleSheet.create({
     borderRadius: 20, padding: 20,
     alignItems: 'center', width: '100%', marginBottom: 20,
   },
-  scoreLabel: { fontSize: 13, color: '#d0e8ff', marginBottom: 4 },
+  scoreLabel: { fontSize: 13, color: '#d0e8ff', marginBottom: 4, textAlign: 'center' },
   scoreNumber: { fontSize: 48, fontWeight: 'bold', color: '#ffe082' },
   section: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.1)',
@@ -254,6 +352,15 @@ const styles = StyleSheet.create({
   resultRight: { alignItems: 'flex-end', marginLeft: 8 },
   resultScore: { fontSize: 14, fontWeight: 'bold', color: '#ffe082' },
   resultVibration: { fontSize: 11, color: '#b0d4f1' },
+  videoBox: { marginTop: 12, width: '100%' },
+  videoTitle: { fontSize: 14, fontWeight: 'bold', color: '#fff', marginBottom: 8, textAlign: 'center' },
+  video: { width: '100%', height: 220, borderRadius: 12, backgroundColor: '#000' },
+  noVideoBox: {
+    marginTop: 12, padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12, alignItems: 'center',
+  },
+  noVideoText: { fontSize: 13, color: '#b0d4f1', fontStyle: 'italic' },
   reflectionText: { fontSize: 14, color: '#e0f0ff', fontStyle: 'italic', lineHeight: 22 },
   dateText: { fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 24 },
   backButton: {

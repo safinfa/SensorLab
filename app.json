@@ -20,13 +20,28 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.safinfa.SensorLab"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-localization"
-    ]
+      "expo-localization",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow STEMM Lab to access your camera to detect parachute drops",
+          "microphonePermission": "Allow STEMM Lab to access your microphone",
+          "recordAudioAndroid": true
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "86d95496-788e-4797-a8aa-98539b0a2d1b"
+      }
+    },
+    "owner": "safinfa"
   }
 }
