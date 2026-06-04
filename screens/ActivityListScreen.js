@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const activities = [
   { id: 1, image: require('../assets/act1_parachute.png'), active: false, screen: 'Activity1' },
-  { id: 2, image: require('../assets/act2_sound.png'), active: false, screen: 'Activity2' },
+  { id: 2, image: require('../assets/act2_sound.png'), active: true, screen: 'Activity2' },
   { id: 3, image: require('../assets/act3_handfan.png'), active: true, screen: 'Activity3' },
   { id: 4, image: require('../assets/act4_earthquake.png'), active: true, screen: 'Activity4' },
   { id: 5, image: require('../assets/act5_human.png'), active: true, screen: 'Activity5' },

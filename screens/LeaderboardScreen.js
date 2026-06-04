@@ -6,6 +6,7 @@ import { db } from '../firebaseConfig';
 import { useState, useEffect } from 'react';
 
 const ACTIVITIES = [
+  { id: 2, name: 'Sound Pollution Hunter' },
   { id: 3, name: 'Hand Fan Challenge' },
   { id: 4, name: 'Earthquake Resistant Structure' },
   { id: 5, name: 'Stretch Speed & Gracefulness' },

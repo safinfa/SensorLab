@@ -1,5 +1,9 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import Activity2IntroScreen from './screens/Activity2IntroScreen';
+import Activity2InstructionsScreen from './screens/Activity2InstructionsScreen';
+import Activity2ChallengeScreen from './screens/Activity2ChallengeScreen';
+import Activity2ReflectionScreen from './screens/Activity2ReflectionScreen';
 import Activity3IntroScreen from './screens/Activity3IntroScreen';
 import Activity3InstructionsScreen from './screens/Activity3InstructionsScreen';
 import Activity3ChallengeScreen from './screens/Activity3ChallengeScreen';
@@ -46,6 +50,10 @@ export default function App() {
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="ActivityList" component={ActivityListScreen} />
+        <Stack.Screen name="Activity2" component={Activity2IntroScreen} />
+        <Stack.Screen name="Activity2Instructions" component={Activity2InstructionsScreen} />
+        <Stack.Screen name="Activity2Challenge" component={Activity2ChallengeScreen} />
+        <Stack.Screen name="Activity2Reflection" component={Activity2ReflectionScreen} />
         <Stack.Screen name="Activity3" component={Activity3IntroScreen} />
         <Stack.Screen name="Activity3Instructions" component={Activity3InstructionsScreen} />
         <Stack.Screen name="Activity3Challenge" component={Activity3ChallengeScreen} />

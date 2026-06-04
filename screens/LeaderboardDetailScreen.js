@@ -32,6 +32,21 @@ export default function LeaderboardDetailScreen({ navigation, route }) {
           <Text style={styles.scoreNumber}>{entry.totalScore}</Text>
         </View>
 
+        {/* Activity 2 — Sound Results */}
+        {entry.activityId === 2 && entry.loudestSound && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Sound Results</Text>
+            {entry.results?.map((r, i) => (
+              <View key={i} style={styles.resultRow}>
+                <Text style={styles.resultName}>{r.emoji} {r.sound}</Text>
+                <View style={styles.resultRight}>
+                  <Text style={styles.resultScore}>{r.actualDb} dB</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Activity 3 — Hand Fan Results */}
         {entry.activityId === 3 && entry.bestReading && (
           <View style={styles.section}>
