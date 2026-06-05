@@ -16,12 +16,12 @@
       "supportsTablet": true
     },
     "android": {
-      "jsEngine": "jsc",
+      "jsEngine": "hermes",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
+      "edgeToEdgeEnabled": false,
       "package": "com.safinfa.SensorLab"
     },
     "web": {
