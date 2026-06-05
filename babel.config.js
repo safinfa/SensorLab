@@ -3,12 +3,9 @@ module.exports = function(api) {
   return {
     presets: ['babel-preset-expo'],
     plugins: [
-      ['module:react-native-dotenv', {
-        moduleName: '@env',
-        path: '.env',
-        safe: false,
-        allowUndefined: false,
-      }]
-    ]
+      '@babel/plugin-proposal-private-methods',
+      '@babel/plugin-proposal-class-properties',
+      '@babel/plugin-proposal-private-property-in-object',
+    ],
   };
 };
