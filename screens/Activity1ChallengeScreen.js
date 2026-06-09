@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useEffect, useRef, useState } from 'react';
 import * as Haptics from 'expo-haptics';
-import { Video, ResizeMode } from 'expo-av';
+import { Video, ResizeMode, Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 
@@ -133,8 +133,27 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
       Alert.alert('Error', 'Camera not ready. Please wait.');
       return;
     }
+
+    // Request microphone permission first
+    const { status: audioStatus } = await Audio.requestPermissionsAsync();
+    if (audioStatus !== 'granted') {
+      Alert.alert(
+        'Microphone Permission Required',
+        'Please allow microphone access to record video with audio.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    // Set audio mode for recording
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: true,
+      playsInSilentModeIOS: true,
+    });
+
     // Get location when recording starts
     getLocation();
+
     try {
       setIsRecording(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -174,7 +193,6 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
     if (!result.canceled) {
       setVideoUri(result.assets[0].uri);
       setPhase('review');
-      // Also get location when picking from library
       getLocation();
     }
   };
@@ -325,7 +343,6 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
               <Text style={styles.subtitle}>Drop {currentDesign + 1} of {DESIGNS.length}</Text>
               <Text style={styles.dropInfo}>📏 Height: {dropHeight}cm | ⚖️ Mass: {objectMass}g</Text>
 
-              {/* Location display */}
               {locationLoading && (
                 <View style={styles.locationBox}>
                   <Text style={styles.locationText}>📍 Getting location...</Text>
@@ -374,7 +391,6 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
               <Text style={styles.title}>📹 Review Your Video</Text>
               <Text style={styles.subtitle}>Scrub through to find drop and landing moments</Text>
 
-              {/* Location tag on video */}
               {location && (
                 <View style={styles.locationBox}>
                   <Text style={styles.locationText}>📍 {location.address}</Text>
@@ -530,7 +546,6 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
                 </View>
               )}
 
-              {/* Live physics preview */}
               {dropTime ? (
                 <View style={styles.previewBox}>
                   <Text style={styles.previewTitle}>📊 Calculated Results:</Text>
@@ -602,7 +617,6 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
               <Text style={styles.title}>🎉 All Drops Complete!</Text>
               <Text style={styles.subtitle}>Parachute Drop Results:</Text>
 
-              {/* Location summary */}
               {location && (
                 <View style={styles.locationBox}>
                   <Text style={styles.locationText}>📍 Drop Location: {location.address}</Text>
@@ -728,8 +742,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10, borderRadius: 20,
   },
   cameraBackText: { color: '#fff', fontSize: 14 },
-
-  // Location styles
   locationBox: {
     width: '100%', backgroundColor: 'rgba(76,175,80,0.15)',
     borderRadius: 12, padding: 10, marginBottom: 12,
@@ -738,7 +750,6 @@ const styles = StyleSheet.create({
   },
   locationText: { fontSize: 13, color: '#4caf50', fontWeight: 'bold', textAlign: 'center' },
   locationCoords: { fontSize: 11, color: '#b0d4f1', marginTop: 2 },
-
   videoPlayer: { width: '100%', height: 240, borderRadius: 16, marginBottom: 16 },
   calculateVideoPlayer: { width: '100%', height: 220, borderRadius: 16, marginBottom: 8 },
   videoSection: { width: '100%', marginBottom: 16 },

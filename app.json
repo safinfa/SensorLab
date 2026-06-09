@@ -16,7 +16,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Allow STEMM Lab to access your location to tag where the parachute drop was performed.",
-        "NSLocationAlwaysUsageDescription": "Allow STEMM Lab to access your location to tag where the parachute drop was performed."
+        "NSLocationAlwaysUsageDescription": "Allow STEMM Lab to access your location to tag where the parachute drop was performed.",
+        "NSMicrophoneUsageDescription": "Allow STEMM Lab to access your microphone to record parachute drop videos."
       }
     },
     "android": {
@@ -32,7 +33,9 @@
         "ACCESS_COARSE_LOCATION",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
-        "SCHEDULE_EXACT_ALARM"
+        "SCHEDULE_EXACT_ALARM",
+        "RECORD_AUDIO",
+        "CAMERA"
       ]
     },
     "web": {
@@ -44,7 +47,7 @@
         "expo-camera",
         {
           "cameraPermission": "Allow STEMM Lab to access your camera to detect parachute drops",
-          "microphonePermission": "Allow STEMM Lab to access your microphone",
+          "microphonePermission": "Allow STEMM Lab to access your microphone to record parachute drop videos",
           "recordAudioAndroid": true
         }
       ],

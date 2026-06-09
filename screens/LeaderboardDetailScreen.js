@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Video, ResizeMode } from 'expo-av';
 
@@ -34,6 +34,11 @@ export default function LeaderboardDetailScreen({ navigation, route }) {
 
   const RANK_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'];
   const getRankColor = (rank) => rank <= 3 ? RANK_COLORS[rank - 1] : '#d0e8ff';
+
+  const openGoogleMaps = (latitude, longitude) => {
+    const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+    Linking.openURL(url);
+  };
 
   return (
     <LinearGradient colors={['#4a90d9', '#1a3a5c']} style={styles.gradient}>
@@ -136,15 +141,20 @@ export default function LeaderboardDetailScreen({ navigation, route }) {
               ) : null;
             })()}
 
-            {/* Drop Location */}
+            {/* Drop Location — tappable */}
             {entry.location && (
-              <View style={styles.locationBox}>
+              <TouchableOpacity
+                style={styles.locationBox}
+                onPress={() => openGoogleMaps(entry.location.latitude, entry.location.longitude)}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.locationTitle}>📍 Drop Location</Text>
                 <Text style={styles.locationAddress}>{entry.location.address}</Text>
                 <Text style={styles.locationCoords}>
                   {entry.location.latitude?.toFixed(4)}, {entry.location.longitude?.toFixed(4)}
                 </Text>
-              </View>
+                <Text style={styles.locationTap}>Tap to open in Google Maps →</Text>
+              </TouchableOpacity>
             )}
 
             {/* Best drop video */}
@@ -470,8 +480,6 @@ const styles = StyleSheet.create({
   },
   riskSummaryTitle: { fontSize: 13, color: '#fff', fontWeight: 'bold', marginBottom: 4 },
   riskSummaryLabel: { fontSize: 13, fontWeight: 'bold', textAlign: 'center' },
-
-  // Location
   locationBox: {
     marginTop: 12, marginBottom: 8, padding: 12,
     backgroundColor: 'rgba(76,175,80,0.1)',
@@ -481,7 +489,7 @@ const styles = StyleSheet.create({
   locationTitle: { fontSize: 13, fontWeight: 'bold', color: '#4caf50', marginBottom: 4 },
   locationAddress: { fontSize: 13, color: '#fff', textAlign: 'center', marginBottom: 2 },
   locationCoords: { fontSize: 11, color: '#b0d4f1' },
-
+  locationTap: { fontSize: 11, color: '#4caf50', marginTop: 6, fontStyle: 'italic' },
   reflectionText: { fontSize: 14, color: '#e0f0ff', fontStyle: 'italic', lineHeight: 22 },
   dateText: { fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 24 },
   backButton: {
