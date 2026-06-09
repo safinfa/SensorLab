@@ -13,6 +13,20 @@ const SOUNDS = [
 
 const RECORD_DURATION = 3000;
 
+const getDbRisk = (db) => {
+  const d = parseFloat(db);
+  if (!d || d <= 0) return null;
+  if (d < 30)  return { label: 'No risk', color: '#4caf50', emoji: '✅' };
+  if (d < 60)  return { label: 'Safe for long periods', color: '#4caf50', emoji: '✅' };
+  if (d < 85)  return { label: 'Generally safe, long exposure can cause fatigue', color: '#ffe082', emoji: '⚠️' };
+  if (d < 90)  return { label: 'Hearing damage possible after long exposure', color: '#ff9800', emoji: '🔶' };
+  if (d < 100) return { label: 'Hearing damage likely after short exposure', color: '#ff9800', emoji: '🔶' };
+  if (d < 110) return { label: 'Serious hearing damage in minutes', color: '#f44336', emoji: '🚨' };
+  if (d < 120) return { label: 'Painful — immediate damage possible', color: '#f44336', emoji: '🚨' };
+  if (d < 140) return { label: 'Immediate and severe hearing damage', color: '#b71c1c', emoji: '💀' };
+  return { label: 'Instant, permanent hearing damage', color: '#b71c1c', emoji: '💀' };
+};
+
 export default function Activity2ChallengeScreen({ navigation, route }) {
   const { teamName, prediction } = route?.params || {};
 
@@ -63,7 +77,6 @@ export default function Activity2ChallengeScreen({ navigation, route }) {
   const startCountdown = () => {
     setPhase('ready');
     setCountdown(3);
-
     let count = 3;
     countdownRef.current = setInterval(() => {
       count -= 1;
@@ -81,20 +94,16 @@ export default function Activity2ChallengeScreen({ navigation, route }) {
       peakDbRef.current = 0;
       setPeakDb(0);
       setCurrentDb(0);
-
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
       });
-
       const { recording } = await Audio.Recording.createAsync({
         ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
         isMeteringEnabled: true,
       });
-
       recordingRef.current = recording;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
       meteringIntervalRef.current = setInterval(async () => {
         if (recordingRef.current) {
           const status = await recordingRef.current.getStatusAsync();
@@ -108,11 +117,7 @@ export default function Activity2ChallengeScreen({ navigation, route }) {
           }
         }
       }, 100);
-
-      setTimeout(() => {
-        stopRecording();
-      }, RECORD_DURATION);
-
+      setTimeout(() => { stopRecording(); }, RECORD_DURATION);
     } catch (error) {
       Alert.alert('Microphone Error', 'Could not access microphone. Please allow microphone permission.');
       setPhase('predict');
@@ -121,16 +126,12 @@ export default function Activity2ChallengeScreen({ navigation, route }) {
 
   const stopRecording = async () => {
     clearInterval(meteringIntervalRef.current);
-
     if (recordingRef.current) {
       try {
         await recordingRef.current.stopAndUnloadAsync();
         recordingRef.current = null;
-      } catch (e) {
-        // already stopped
-      }
+      } catch (e) {}
     }
-
     const finalPeak = peakDbRef.current;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setPeakDb(finalPeak);
@@ -145,7 +146,6 @@ export default function Activity2ChallengeScreen({ navigation, route }) {
       actualDb: peakDbRef.current,
       notes: getDbLabel(peakDbRef.current),
     };
-
     const newResults = [...resultsRef.current, result];
     resultsRef.current = newResults;
     setResults(newResults);
@@ -153,7 +153,6 @@ export default function Activity2ChallengeScreen({ navigation, route }) {
     setPeakDb(0);
     peakDbRef.current = 0;
     setCurrentDb(0);
-
     if (currentSound + 1 < SOUNDS.length) {
       setCurrentSound(prev => prev + 1);
       setPhase('predict');
@@ -252,6 +251,18 @@ export default function Activity2ChallengeScreen({ navigation, route }) {
                 <Text style={styles.resultLabel}>Level</Text>
                 <Text style={styles.resultValue}>{getDbLabel(peakDb)}</Text>
               </View>
+              {/* Risk to Hearing */}
+              {(() => {
+                const risk = getDbRisk(peakDb);
+                return risk ? (
+                  <View style={styles.resultRow}>
+                    <Text style={styles.resultLabel}>Risk to Hearing</Text>
+                    <Text style={[styles.resultValue, { color: risk.color, flex: 1, textAlign: 'right' }]}>
+                      {risk.emoji} {risk.label}
+                    </Text>
+                  </View>
+                ) : null;
+              })()}
             </View>
             <TouchableOpacity style={styles.button} onPress={saveAndNext}>
               <Text style={styles.buttonText}>
@@ -266,37 +277,54 @@ export default function Activity2ChallengeScreen({ navigation, route }) {
           <View style={styles.centeredBox}>
             <Text style={styles.title}>🎉 All Done!</Text>
             <Text style={styles.subtitle}>Here are your sound measurements:</Text>
-            {resultsRef.current.length > 0 && (
-              <View style={styles.loudestCard}>
-                <Text style={styles.loudestTitle}>🏆 Loudest Sound</Text>
-                <Text style={styles.loudestValue}>
-                  {resultsRef.current.reduce((max, r) => r.actualDb > max.actualDb ? r : max, resultsRef.current[0]).emoji}{' '}
-                  {resultsRef.current.reduce((max, r) => r.actualDb > max.actualDb ? r : max, resultsRef.current[0]).sound}
-                </Text>
-                <Text style={styles.loudestDb}>
-                  {resultsRef.current.reduce((max, r) => r.actualDb > max.actualDb ? r : max, resultsRef.current[0]).actualDb} dB
-                </Text>
-              </View>
-            )}
-            {resultsRef.current.map((r, i) => (
-              <View key={i} style={styles.summaryCard}>
-                <Text style={styles.summaryTitle}>{r.emoji} {r.sound}</Text>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Predicted:</Text>
-                  <Text style={styles.summaryValue}>{r.predictedDb} dB</Text>
+
+            {resultsRef.current.length > 0 && (() => {
+              const loudest = resultsRef.current.reduce((max, r) => r.actualDb > max.actualDb ? r : max, resultsRef.current[0]);
+              const risk = getDbRisk(loudest.actualDb);
+              return (
+                <View style={styles.loudestCard}>
+                  <Text style={styles.loudestTitle}>🏆 Loudest Sound</Text>
+                  <Text style={styles.loudestValue}>{loudest.emoji} {loudest.sound}</Text>
+                  <Text style={styles.loudestDb}>{loudest.actualDb} dB</Text>
+                  {risk && (
+                    <Text style={[styles.loudestRisk, { color: risk.color }]}>
+                      {risk.emoji} {risk.label}
+                    </Text>
+                  )}
                 </View>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Actual:</Text>
-                  <Text style={[styles.summaryValue, { color: getDbColor(r.actualDb) }]}>{r.actualDb} dB</Text>
+              );
+            })()}
+
+            {resultsRef.current.map((r, i) => {
+              const risk = getDbRisk(r.actualDb);
+              return (
+                <View key={i} style={styles.summaryCard}>
+                  <Text style={styles.summaryTitle}>{r.emoji} {r.sound}</Text>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Predicted:</Text>
+                    <Text style={styles.summaryValue}>{r.predictedDb} dB</Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Actual:</Text>
+                    <Text style={[styles.summaryValue, { color: getDbColor(r.actualDb) }]}>{r.actualDb} dB</Text>
+                  </View>
+                  <View style={styles.meterBarBg}>
+                    <View style={[styles.meterBarFill, {
+                      width: `${Math.min(100, r.actualDb)}%`,
+                      backgroundColor: getDbColor(r.actualDb),
+                    }]} />
+                  </View>
+                  {risk && (
+                    <View style={styles.riskBox}>
+                      <Text style={[styles.riskText, { color: risk.color }]}>
+                        {risk.emoji} {risk.label}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-                <View style={styles.meterBarBg}>
-                  <View style={[styles.meterBarFill, {
-                    width: `${Math.min(100, r.actualDb)}%`,
-                    backgroundColor: getDbColor(r.actualDb),
-                  }]} />
-                </View>
-              </View>
-            ))}
+              );
+            })}
+
             <TouchableOpacity
               style={styles.button}
               onPress={() => navigation.navigate('Activity2Reflection', {
@@ -362,7 +390,8 @@ const styles = StyleSheet.create({
   },
   loudestTitle: { fontSize: 14, fontWeight: 'bold', color: '#FFD700', marginBottom: 4 },
   loudestValue: { fontSize: 18, color: '#fff', marginBottom: 4 },
-  loudestDb: { fontSize: 36, fontWeight: 'bold', color: '#ffe082' },
+  loudestDb: { fontSize: 36, fontWeight: 'bold', color: '#ffe082', marginBottom: 8 },
+  loudestRisk: { fontSize: 13, fontWeight: 'bold', textAlign: 'center' },
   summaryCard: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 16, padding: 16, marginBottom: 12,
@@ -371,6 +400,12 @@ const styles = StyleSheet.create({
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   summaryLabel: { fontSize: 13, color: '#d0e8ff' },
   summaryValue: { fontSize: 13, fontWeight: 'bold', color: '#ffe082' },
+  riskBox: {
+    marginTop: 8, padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 8, alignItems: 'center',
+  },
+  riskText: { fontSize: 12, fontWeight: 'bold', textAlign: 'center' },
   prevBox: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 16, padding: 14, marginTop: 20,

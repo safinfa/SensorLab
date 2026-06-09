@@ -2,6 +2,31 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'rea
 import { LinearGradient } from 'expo-linear-gradient';
 import { Video, ResizeMode } from 'expo-av';
 
+const getGForceEffect = (gForce) => {
+  const g = parseFloat(gForce);
+  if (!g || g <= 0) return null;
+  if (g < 1) return { label: 'Negligible effect', color: '#4caf50', emoji: '✅' };
+  if (g < 5) return { label: 'No injury likely', color: '#4caf50', emoji: '✅' };
+  if (g < 10) return { label: 'Possible bruising or strains', color: '#ffe082', emoji: '⚠️' };
+  if (g < 30) return { label: 'Serious injuries possible (broken bones, concussions)', color: '#ff9800', emoji: '🦴' };
+  if (g < 50) return { label: 'High risk of severe injury', color: '#f44336', emoji: '🚨' };
+  return { label: 'Life-threatening injuries likely', color: '#b71c1c', emoji: '💀' };
+};
+
+const getDbRisk = (db) => {
+  const d = parseFloat(db);
+  if (!d || d <= 0) return null;
+  if (d < 30)  return { label: 'No risk', color: '#4caf50', emoji: '✅' };
+  if (d < 60)  return { label: 'Safe for long periods', color: '#4caf50', emoji: '✅' };
+  if (d < 85)  return { label: 'Generally safe, long exposure can cause fatigue', color: '#ffe082', emoji: '⚠️' };
+  if (d < 90)  return { label: 'Hearing damage possible after long exposure', color: '#ff9800', emoji: '🔶' };
+  if (d < 100) return { label: 'Hearing damage likely after short exposure', color: '#ff9800', emoji: '🔶' };
+  if (d < 110) return { label: 'Serious hearing damage in minutes', color: '#f44336', emoji: '🚨' };
+  if (d < 120) return { label: 'Painful — immediate damage possible', color: '#f44336', emoji: '🚨' };
+  if (d < 140) return { label: 'Immediate and severe hearing damage', color: '#b71c1c', emoji: '💀' };
+  return { label: 'Instant, permanent hearing damage', color: '#b71c1c', emoji: '💀' };
+};
+
 export default function LeaderboardDetailScreen({ navigation, route }) {
   const { entry, teamName } = route?.params || {};
 
@@ -97,6 +122,32 @@ export default function LeaderboardDetailScreen({ navigation, route }) {
                 <Text style={styles.resultScore}>{entry.bestDesign.gForce} g</Text>
               </View>
             </View>
+            {(() => {
+              const effect = getGForceEffect(entry.bestDesign.gForce);
+              return effect ? (
+                <View style={styles.resultRow}>
+                  <Text style={styles.resultName}>Likely Effect</Text>
+                  <View style={[styles.resultRight, { flex: 1 }]}>
+                    <Text style={[styles.resultScore, { color: effect.color, textAlign: 'right' }]}>
+                      {effect.emoji} {effect.label}
+                    </Text>
+                  </View>
+                </View>
+              ) : null;
+            })()}
+
+            {/* Drop Location */}
+            {entry.location && (
+              <View style={styles.locationBox}>
+                <Text style={styles.locationTitle}>📍 Drop Location</Text>
+                <Text style={styles.locationAddress}>{entry.location.address}</Text>
+                <Text style={styles.locationCoords}>
+                  {entry.location.latitude?.toFixed(4)}, {entry.location.longitude?.toFixed(4)}
+                </Text>
+              </View>
+            )}
+
+            {/* Best drop video */}
             {entry.bestDesign.videoUrl ? (
               <View style={styles.videoBox}>
                 <Text style={styles.videoTitle}>🎬 Best Drop Video</Text>
@@ -119,28 +170,50 @@ export default function LeaderboardDetailScreen({ navigation, route }) {
         {/* Activity 2 — Sound Results */}
         {entry.activityId === 2 && entry.loudestSound && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Sound Results</Text>
-            {entry.results?.map((r, i) => (
-              <View key={i} style={styles.resultRow}>
-                <Text style={styles.resultName}>{r.emoji} {r.sound}</Text>
-                <View style={styles.resultRight}>
-                  <Text style={styles.resultScore}>{r.actualDb} dB</Text>
+            <Text style={styles.sectionTitle}>🔊 Sound Results</Text>
+            {entry.results?.map((r, i) => {
+              const risk = getDbRisk(r.actualDb);
+              return (
+                <View key={i}>
+                  <View style={styles.resultRow}>
+                    <Text style={styles.resultName}>{r.emoji} {r.sound}</Text>
+                    <View style={styles.resultRight}>
+                      <Text style={styles.resultScore}>{r.actualDb} dB</Text>
+                    </View>
+                  </View>
+                  {risk && (
+                    <View style={[styles.resultRow, { marginTop: -4 }]}>
+                      <Text style={styles.resultName}>Risk to Hearing</Text>
+                      <View style={[styles.resultRight, { flex: 1 }]}>
+                        <Text style={[styles.resultScore, { color: risk.color, textAlign: 'right' }]}>
+                          {risk.emoji} {risk.label}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
-              </View>
-            ))}
+              );
+            })}
+            {(() => {
+              const risk = getDbRisk(entry.loudestSound?.actualDb);
+              return risk ? (
+                <View style={styles.riskSummaryBox}>
+                  <Text style={styles.riskSummaryTitle}>
+                    🔊 Loudest Recorded: {entry.loudestSound?.actualDb} dB
+                  </Text>
+                  <Text style={[styles.riskSummaryLabel, { color: risk.color }]}>
+                    {risk.emoji} {risk.label}
+                  </Text>
+                </View>
+              ) : null;
+            })()}
           </View>
         )}
 
         {/* Activity 3 — Hand Fan Results */}
         {entry.activityId === 3 && entry.bestReading && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Best Reading</Text>
-            <View style={styles.resultRow}>
-              <Text style={styles.resultName}>Fan Design</Text>
-              <View style={styles.resultRight}>
-                <Text style={styles.resultScore}>{entry.bestReading.design}</Text>
-              </View>
-            </View>
+            <Text style={styles.sectionTitle}>🪭 Best Reading</Text>
             <View style={styles.resultRow}>
               <Text style={styles.resultName}>Material</Text>
               <View style={styles.resultRight}>
@@ -165,6 +238,37 @@ export default function LeaderboardDetailScreen({ navigation, route }) {
                 <Text style={styles.resultScore}>{entry.bestReading.estimatedForce} N</Text>
               </View>
             </View>
+            {entry.bestReading.photoUrl ? (
+              <View style={styles.photoProofBox}>
+                <Text style={styles.photoProofTitle}>📸 Angle Proof Photo</Text>
+                <Image
+                  source={{ uri: entry.bestReading.photoUrl }}
+                  style={styles.photoProof}
+                  resizeMode="cover"
+                />
+              </View>
+            ) : (
+              <View style={styles.noVideoBox}>
+                <Text style={styles.noVideoText}>📸 No photo taken for this reading</Text>
+              </View>
+            )}
+            {entry.results && entry.results.some(r => r.photoUrl) && (
+              <View style={{ marginTop: 12 }}>
+                <Text style={styles.sectionTitle}>📸 All Reading Photos</Text>
+                {entry.results.filter(r => r.photoUrl).map((r, i) => (
+                  <View key={i} style={{ marginBottom: 12 }}>
+                    <Text style={styles.resultName}>
+                      {r.material} @ {r.distance} — {r.actualAngle}°
+                    </Text>
+                    <Image
+                      source={{ uri: r.photoUrl }}
+                      style={styles.photoProof}
+                      resizeMode="cover"
+                    />
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         )}
 
@@ -293,10 +397,7 @@ export default function LeaderboardDetailScreen({ navigation, route }) {
         ) : null}
 
         {/* Back Button */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>← Back to Leaderboard</Text>
         </TouchableOpacity>
 
@@ -308,8 +409,6 @@ export default function LeaderboardDetailScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
   container: { alignItems: 'center', paddingTop: 60, paddingBottom: 40, paddingHorizontal: 24 },
-
-  // Profile Picture
   detailAvatar: {
     width: 90, height: 90, borderRadius: 45,
     borderWidth: 3, borderColor: '#fff', marginBottom: 12,
@@ -321,7 +420,6 @@ const styles = StyleSheet.create({
     borderWidth: 3, borderColor: '#fff', marginBottom: 12,
   },
   detailAvatarInitial: { fontSize: 36, fontWeight: 'bold', color: '#fff' },
-
   rankBadge: {
     width: 80, height: 80, borderRadius: 40,
     borderWidth: 3, justifyContent: 'center', alignItems: 'center',
@@ -361,6 +459,29 @@ const styles = StyleSheet.create({
     borderRadius: 12, alignItems: 'center',
   },
   noVideoText: { fontSize: 13, color: '#b0d4f1', fontStyle: 'italic' },
+  photoProofBox: { marginTop: 12, width: '100%' },
+  photoProofTitle: { fontSize: 14, fontWeight: 'bold', color: '#fff', marginBottom: 8, textAlign: 'center' },
+  photoProof: { width: '100%', height: 200, borderRadius: 12, marginTop: 4 },
+  riskSummaryBox: {
+    marginTop: 12, padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  },
+  riskSummaryTitle: { fontSize: 13, color: '#fff', fontWeight: 'bold', marginBottom: 4 },
+  riskSummaryLabel: { fontSize: 13, fontWeight: 'bold', textAlign: 'center' },
+
+  // Location
+  locationBox: {
+    marginTop: 12, marginBottom: 8, padding: 12,
+    backgroundColor: 'rgba(76,175,80,0.1)',
+    borderRadius: 12, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(76,175,80,0.3)',
+  },
+  locationTitle: { fontSize: 13, fontWeight: 'bold', color: '#4caf50', marginBottom: 4 },
+  locationAddress: { fontSize: 13, color: '#fff', textAlign: 'center', marginBottom: 2 },
+  locationCoords: { fontSize: 11, color: '#b0d4f1' },
+
   reflectionText: { fontSize: 14, color: '#e0f0ff', fontStyle: 'italic', lineHeight: 22 },
   dateText: { fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 24 },
   backButton: {

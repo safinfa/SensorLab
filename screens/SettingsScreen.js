@@ -4,15 +4,19 @@ import { useState, useEffect } from 'react';
 import { auth, db } from '../firebaseConfig';
 import { doc, getDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { signOut, deleteUser } from 'firebase/auth';
+import { scheduleDailyReminder, cancelDailyReminder } from '../utils/notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen({ navigation, route }) {
   const { teamName } = route?.params || {};
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [reminderEnabled, setReminderEnabled] = useState(true);
 
   useEffect(() => {
     loadProfile();
+    checkReminderStatus();
   }, []);
 
   const loadProfile = async () => {
@@ -35,6 +39,25 @@ export default function SettingsScreen({ navigation, route }) {
       console.log('Load profile error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkReminderStatus = async () => {
+    try {
+      const id = await AsyncStorage.getItem('daily_reminder_id');
+      setReminderEnabled(!!id);
+    } catch (e) {}
+  };
+
+  const toggleReminder = async () => {
+    if (reminderEnabled) {
+      await cancelDailyReminder();
+      setReminderEnabled(false);
+      Alert.alert('🔕 Reminders Off', 'Daily reminders have been disabled.');
+    } else {
+      await scheduleDailyReminder();
+      setReminderEnabled(true);
+      Alert.alert('🔔 Reminders On', 'You will be reminded daily at 9:00 AM!');
     }
   };
 
@@ -71,19 +94,12 @@ export default function SettingsScreen({ navigation, route }) {
                     setDeleting(true);
                     try {
                       const user = auth.currentUser;
-
-                      // Delete leaderboard entries
                       const q = query(collection(db, 'leaderboard'), where('userId', '==', user.uid));
                       const snapshot = await getDocs(q);
                       const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, 'leaderboard', d.id)));
                       await Promise.all(deletePromises);
-
-                      // Delete team document
                       await deleteDoc(doc(db, 'teams', user.uid));
-
-                      // Delete Firebase Auth account
                       await deleteUser(user);
-
                       Alert.alert('Account Deleted', 'Your account has been permanently deleted.');
                       navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
                     } catch (error) {
@@ -160,6 +176,23 @@ export default function SettingsScreen({ navigation, route }) {
         {/* Divider */}
         <View style={styles.divider} />
 
+        {/* Daily Reminder Toggle */}
+        <TouchableOpacity style={styles.notifButton} onPress={toggleReminder}>
+          <Text style={styles.notifIcon}>{reminderEnabled ? '🔔' : '🔕'}</Text>
+          <View style={styles.actionContent}>
+            <Text style={styles.notifTitle}>Daily Reminders</Text>
+            <Text style={styles.notifSubtitle}>
+              {reminderEnabled ? 'Enabled — 9:00 AM daily' : 'Disabled'}
+            </Text>
+          </View>
+          <View style={[styles.toggle, reminderEnabled && styles.toggleOn]}>
+            <Text style={styles.toggleText}>{reminderEnabled ? 'ON' : 'OFF'}</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Divider */}
+        <View style={styles.divider} />
+
         {/* Log Out */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutIcon}>🚪</Text>
@@ -205,8 +238,6 @@ const styles = StyleSheet.create({
   container: { alignItems: 'center', paddingTop: 60, paddingBottom: 40, paddingHorizontal: 24 },
   loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 24, textAlign: 'center' },
-
-  // Profile card
   profileCard: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 20, padding: 20, flexDirection: 'row',
@@ -229,8 +260,6 @@ const styles = StyleSheet.create({
   profileMembers: { fontSize: 12, color: '#d0e8ff', marginBottom: 2 },
   profileGrade: { fontSize: 12, color: '#d0e8ff', marginBottom: 2 },
   profileSince: { fontSize: 11, color: '#b0d4f1' },
-
-  // Edit profile button
   profileButton: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 16, padding: 16, flexDirection: 'row',
@@ -239,14 +268,28 @@ const styles = StyleSheet.create({
   },
   profileButtonText: { fontSize: 14, color: '#fff', fontWeight: '600' },
   profileButtonArrow: { fontSize: 16, color: '#b0d4f1' },
-
-  // Divider
   divider: {
     width: '100%', height: 1,
     backgroundColor: 'rgba(255,255,255,0.1)', marginBottom: 16,
   },
 
-  // Action buttons
+  // Notification toggle
+  notifButton: {
+    width: '100%', backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16, padding: 16, flexDirection: 'row',
+    alignItems: 'center', marginBottom: 16,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  },
+  notifIcon: { fontSize: 22, marginRight: 12 },
+  notifTitle: { fontSize: 15, fontWeight: 'bold', color: '#fff', marginBottom: 2 },
+  notifSubtitle: { fontSize: 12, color: '#b0d4f1' },
+  toggle: {
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  toggleOn: { backgroundColor: 'rgba(76,175,80,0.5)' },
+  toggleText: { fontSize: 12, fontWeight: 'bold', color: '#fff' },
+
   logoutButton: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 16, padding: 16, flexDirection: 'row',
@@ -258,7 +301,6 @@ const styles = StyleSheet.create({
   logoutTitle: { fontSize: 15, fontWeight: 'bold', color: '#fff', marginBottom: 2 },
   logoutSubtitle: { fontSize: 12, color: '#b0d4f1' },
   actionArrow: { fontSize: 16, color: '#b0d4f1' },
-
   deleteButton: {
     width: '100%', backgroundColor: 'rgba(244,67,54,0.1)',
     borderRadius: 16, padding: 16, flexDirection: 'row',
@@ -268,7 +310,6 @@ const styles = StyleSheet.create({
   deleteIcon: { fontSize: 22, marginRight: 12 },
   deleteTitle: { fontSize: 15, fontWeight: 'bold', color: '#ff8a80', marginBottom: 2 },
   deleteSubtitle: { fontSize: 12, color: '#ffb3b0' },
-
   backButton: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 25, paddingVertical: 14, alignItems: 'center',

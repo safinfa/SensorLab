@@ -5,9 +5,21 @@ import { useEffect, useRef, useState } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Video, ResizeMode } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 
 const DESIGNS = ['No Parachute (Baseline)', 'Design 1', 'Design 2', 'Design 3'];
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+const getGForceEffect = (gForce) => {
+  const g = parseFloat(gForce);
+  if (!g || g <= 0) return null;
+  if (g < 1) return { label: 'Negligible effect', color: '#4caf50', emoji: '✅' };
+  if (g < 5) return { label: 'No injury likely', color: '#4caf50', emoji: '✅' };
+  if (g < 10) return { label: 'Possible bruising or strains', color: '#ffe082', emoji: '⚠️' };
+  if (g < 30) return { label: 'Serious injuries possible (broken bones, concussions)', color: '#ff9800', emoji: '🦴' };
+  if (g < 50) return { label: 'High risk of severe injury', color: '#f44336', emoji: '🚨' };
+  return { label: 'Life-threatening injuries likely', color: '#b71c1c', emoji: '💀' };
+};
 
 export default function Activity1ChallengeScreen({ navigation, route }) {
   const { teamName, prediction, dropHeight, objectMass } = route?.params || {};
@@ -25,11 +37,14 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
   const [videoPosition, setVideoPosition] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [location, setLocation] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const cameraRef = useRef(null);
   const videoRef = useRef(null);
   const resultsRef = useRef([]);
   const positionIntervalRef = useRef(null);
+  const locationRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -41,6 +56,37 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
   const heightMeters = (dropHeight || 150) / 100;
   const massKg = (objectMass || 10) / 1000;
   const gravity = 9.8;
+
+  const getLocation = async () => {
+    try {
+      setLocationLoading(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('Location permission denied');
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      const address = await Location.reverseGeocodeAsync({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+      const addr = address[0];
+      const locationData = {
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        address: [addr.street, addr.city, addr.region, addr.country]
+          .filter(Boolean).join(', '),
+      };
+      setLocation(locationData);
+      locationRef.current = locationData;
+    } catch (e) {
+      console.log('Location error:', e);
+    } finally {
+      setLocationLoading(false);
+    }
+  };
 
   const calculatePhysics = () => {
     const t = parseFloat(dropTime);
@@ -87,6 +133,8 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
       Alert.alert('Error', 'Camera not ready. Please wait.');
       return;
     }
+    // Get location when recording starts
+    getLocation();
     try {
       setIsRecording(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -126,6 +174,8 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
     if (!result.canceled) {
       setVideoUri(result.assets[0].uri);
       setPhase('review');
+      // Also get location when picking from library
+      getLocation();
     }
   };
 
@@ -140,7 +190,7 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
           setIsPlaying(status.isPlaying || false);
         }
       }
-    }, 50); // Update every 50ms for smooth millisecond display
+    }, 50);
   };
 
   const handleVideoLoad = (status) => {
@@ -184,6 +234,7 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
       ...physics,
       bounceType,
       contactTime: parseFloat(contactTime) || 0,
+      location: locationRef.current || null,
     };
     const newResults = [...resultsRef.current, result];
     resultsRef.current = newResults;
@@ -223,7 +274,7 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
   return (
     <LinearGradient colors={['#4a90d9', '#1a3a5c']} style={styles.gradient}>
 
-      {/* RECORDING PHASE — Full screen camera */}
+      {/* RECORDING PHASE */}
       {phase === 'recording' && (
         <View style={styles.fullScreenCamera}>
           <CameraView
@@ -234,15 +285,16 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
             videoQuality="1080p"
             onCameraReady={() => console.log('Camera ready')}
           />
-
-          {/* Top overlay */}
           <View style={styles.cameraTopOverlay}>
             <Text style={styles.cameraTopText}>
               {isRecording ? '🔴 RECORDING — Tap STOP when landing is done' : '📷 Ready — Tap RECORD to start'}
             </Text>
+            {location && (
+              <Text style={styles.cameraLocationText}>
+                📍 {location.address}
+              </Text>
+            )}
           </View>
-
-          {/* Bottom controls */}
           <View style={styles.cameraBottomControls}>
             {!isRecording ? (
               <TouchableOpacity style={styles.recordCircleButton} onPress={startRecording}>
@@ -272,6 +324,21 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
               <Text style={styles.title}>🪂 {DESIGNS[currentDesign]}</Text>
               <Text style={styles.subtitle}>Drop {currentDesign + 1} of {DESIGNS.length}</Text>
               <Text style={styles.dropInfo}>📏 Height: {dropHeight}cm | ⚖️ Mass: {objectMass}g</Text>
+
+              {/* Location display */}
+              {locationLoading && (
+                <View style={styles.locationBox}>
+                  <Text style={styles.locationText}>📍 Getting location...</Text>
+                </View>
+              )}
+              {location && !locationLoading && (
+                <View style={styles.locationBox}>
+                  <Text style={styles.locationText}>📍 {location.address}</Text>
+                  <Text style={styles.locationCoords}>
+                    {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                  </Text>
+                </View>
+              )}
 
               <View style={styles.checklistBox}>
                 <Text style={styles.checklistTitle}>Before Recording:</Text>
@@ -307,6 +374,16 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
               <Text style={styles.title}>📹 Review Your Video</Text>
               <Text style={styles.subtitle}>Scrub through to find drop and landing moments</Text>
 
+              {/* Location tag on video */}
+              {location && (
+                <View style={styles.locationBox}>
+                  <Text style={styles.locationText}>📍 {location.address}</Text>
+                  <Text style={styles.locationCoords}>
+                    {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                  </Text>
+                </View>
+              )}
+
               <Video
                 ref={videoRef}
                 source={{ uri: videoUri }}
@@ -316,31 +393,27 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
                 shouldPlay={false}
                 onLoad={handleVideoLoad}
               />
-
               <View style={styles.instructionBox}>
                 <Text style={styles.instructionTitle}>📋 From Your Video, Measure:</Text>
                 <Text style={styles.instructionItem}>1. Time from release to first ground contact (drop time)</Text>
                 <Text style={styles.instructionItem}>2. Time from first contact to object stopping (contact time)</Text>
                 <Text style={styles.instructionItem}>3. If object bounced, time to max height after bounce</Text>
               </View>
-
               <TouchableOpacity style={styles.button} onPress={() => setPhase('calculate')}>
                 <Text style={styles.buttonText}>Enter Measurements →</Text>
               </TouchableOpacity>
-
               <TouchableOpacity style={styles.backButton} onPress={() => setPhase('recording')}>
                 <Text style={styles.backButtonText}>← Re-record</Text>
               </TouchableOpacity>
             </View>
           )}
 
-          {/* CALCULATE PHASE — with video playback */}
+          {/* CALCULATE PHASE */}
           {phase === 'calculate' && (
             <View style={styles.centeredBox}>
               <Text style={styles.title}>📐 Enter Measurements</Text>
               <Text style={styles.subtitle}>{DESIGNS[currentDesign]}</Text>
 
-              {/* Video playback with millisecond timer */}
               {videoUri && (
                 <View style={styles.videoSection}>
                   <Video
@@ -352,14 +425,10 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
                     shouldPlay={false}
                     onLoad={handleVideoLoad}
                   />
-
-                  {/* Millisecond timer display */}
                   <View style={styles.timerDisplay}>
                     <Text style={styles.timerMs}>{formatMs(videoPosition)}</Text>
                     <Text style={styles.timerLabel}>Current Position</Text>
                   </View>
-
-                  {/* Fine seek controls */}
                   <View style={styles.seekRow}>
                     <TouchableOpacity style={styles.seekBtn} onPress={() => seekVideo(-100)}>
                       <Text style={styles.seekBtnText}>-100ms</Text>
@@ -374,8 +443,6 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
                       <Text style={styles.seekBtnText}>+100ms</Text>
                     </TouchableOpacity>
                   </View>
-
-                  {/* Mark buttons */}
                   <View style={styles.markRow}>
                     <TouchableOpacity style={styles.markDropBtn} onPress={markDropTime}>
                       <Text style={styles.markBtnText}>📍 Mark Drop</Text>
@@ -386,14 +453,12 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
                       {contactTime ? <Text style={styles.markBtnSub}>{contactTime}s</Text> : null}
                     </TouchableOpacity>
                   </View>
-
                   <Text style={styles.markHint}>
                     Tip: Pause video at exact moment, then tap Mark buttons. Use frame controls for precision.
                   </Text>
                 </View>
               )}
 
-              {/* Manual input fallback */}
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>⏱ Drop Time (seconds)</Text>
                 <Text style={styles.inputHint}>Auto-filled by Mark Drop, or enter manually</Text>
@@ -495,10 +560,23 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
                           <Text style={styles.previewValue}>{physics.dragForce} N</Text>
                         </View>
                         {contactTime ? (
-                          <View style={styles.previewRow}>
-                            <Text style={styles.previewLabel}>G-Force</Text>
-                            <Text style={styles.previewValue}>{physics.gForce} g</Text>
-                          </View>
+                          <>
+                            <View style={styles.previewRow}>
+                              <Text style={styles.previewLabel}>G-Force</Text>
+                              <Text style={styles.previewValue}>{physics.gForce} g</Text>
+                            </View>
+                            {(() => {
+                              const effect = getGForceEffect(physics.gForce);
+                              return effect ? (
+                                <View style={styles.previewRow}>
+                                  <Text style={styles.previewLabel}>Likely Effect</Text>
+                                  <Text style={[styles.previewValue, { color: effect.color }]}>
+                                    {effect.emoji} {effect.label}
+                                  </Text>
+                                </View>
+                              ) : null;
+                            })()}
+                          </>
                         ) : null}
                       </>
                     );
@@ -523,6 +601,16 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
             <View style={styles.centeredBox}>
               <Text style={styles.title}>🎉 All Drops Complete!</Text>
               <Text style={styles.subtitle}>Parachute Drop Results:</Text>
+
+              {/* Location summary */}
+              {location && (
+                <View style={styles.locationBox}>
+                  <Text style={styles.locationText}>📍 Drop Location: {location.address}</Text>
+                  <Text style={styles.locationCoords}>
+                    {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                  </Text>
+                </View>
+              )}
 
               {resultsRef.current.length > 1 && (() => {
                 const parachuteDesigns = resultsRef.current.slice(1);
@@ -565,6 +653,17 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
                     <Text style={styles.summaryLabel}>G-Force:</Text>
                     <Text style={styles.summaryValue}>{r.gForce} g</Text>
                   </View>
+                  {(() => {
+                    const effect = getGForceEffect(r.gForce);
+                    return effect ? (
+                      <View style={styles.summaryRow}>
+                        <Text style={styles.summaryLabel}>Likely Effect:</Text>
+                        <Text style={[styles.summaryValue, { color: effect.color, flex: 2 }]}>
+                          {effect.emoji} {effect.label}
+                        </Text>
+                      </View>
+                    ) : null;
+                  })()}
                 </View>
               ))}
 
@@ -574,6 +673,7 @@ export default function Activity1ChallengeScreen({ navigation, route }) {
                   teamName, prediction,
                   results: resultsRef.current,
                   dropHeight, objectMass,
+                  location,
                 })}
               >
                 <Text style={styles.buttonText}>Continue to Reflection</Text>
@@ -592,21 +692,20 @@ const styles = StyleSheet.create({
   container: { flexGrow: 1, paddingTop: 60, paddingBottom: 40, paddingHorizontal: 24 },
   centeredBox: { width: '100%', alignItems: 'center' },
   permissionBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-
-  // Full screen camera
-  fullScreenCamera: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
+  fullScreenCamera: { flex: 1, backgroundColor: '#000' },
   cameraTopOverlay: {
     position: 'absolute', top: 60, left: 0, right: 0,
-    alignItems: 'center', zIndex: 10,
-    paddingHorizontal: 20,
+    alignItems: 'center', zIndex: 10, paddingHorizontal: 20, gap: 8,
   },
   cameraTopText: {
     color: '#fff', fontSize: 14, fontWeight: 'bold',
     backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 16,
     paddingVertical: 8, borderRadius: 20, textAlign: 'center',
+  },
+  cameraLocationText: {
+    color: '#4caf50', fontSize: 12, fontWeight: 'bold',
+    backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12,
+    paddingVertical: 6, borderRadius: 16, textAlign: 'center',
   },
   cameraBottomControls: {
     position: 'absolute', bottom: 60, left: 0, right: 0,
@@ -615,35 +714,33 @@ const styles = StyleSheet.create({
   recordCircleButton: {
     width: 80, height: 80, borderRadius: 40,
     borderWidth: 4, borderColor: '#fff',
-    justifyContent: 'center', alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 20,
   },
-  recordCircleInner: {
-    width: 60, height: 60, borderRadius: 30,
-    backgroundColor: '#f44336',
-  },
+  recordCircleInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#f44336' },
   stopCircleButton: {
     width: 80, height: 80, borderRadius: 40,
     borderWidth: 4, borderColor: '#fff',
-    justifyContent: 'center', alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 20,
   },
-  stopCircleInner: {
-    width: 30, height: 30, borderRadius: 4,
-    backgroundColor: '#fff',
-  },
+  stopCircleInner: { width: 30, height: 30, borderRadius: 4, backgroundColor: '#fff' },
   cameraBackButton: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 20, paddingVertical: 10,
-    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 20,
+    paddingVertical: 10, borderRadius: 20,
   },
   cameraBackText: { color: '#fff', fontSize: 14 },
 
-  // Video player
+  // Location styles
+  locationBox: {
+    width: '100%', backgroundColor: 'rgba(76,175,80,0.15)',
+    borderRadius: 12, padding: 10, marginBottom: 12,
+    alignItems: 'center', borderWidth: 1,
+    borderColor: 'rgba(76,175,80,0.4)',
+  },
+  locationText: { fontSize: 13, color: '#4caf50', fontWeight: 'bold', textAlign: 'center' },
+  locationCoords: { fontSize: 11, color: '#b0d4f1', marginTop: 2 },
+
   videoPlayer: { width: '100%', height: 240, borderRadius: 16, marginBottom: 16 },
   calculateVideoPlayer: { width: '100%', height: 220, borderRadius: 16, marginBottom: 8 },
-
-  // Millisecond timer
   videoSection: { width: '100%', marginBottom: 16 },
   timerDisplay: {
     backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12,
@@ -651,20 +748,13 @@ const styles = StyleSheet.create({
   },
   timerMs: { fontSize: 32, fontWeight: 'bold', color: '#ffe082', fontFamily: 'monospace' },
   timerLabel: { fontSize: 11, color: '#b0d4f1', marginTop: 2 },
-
-  // Seek controls
-  seekRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    marginBottom: 8, gap: 6,
-  },
+  seekRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, gap: 6 },
   seekBtn: {
     flex: 1, backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 10, paddingVertical: 8, alignItems: 'center',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
   },
   seekBtnText: { fontSize: 12, color: '#fff', fontWeight: '600' },
-
-  // Mark buttons
   markRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   markDropBtn: {
     flex: 1, backgroundColor: 'rgba(244,67,54,0.3)',
@@ -679,8 +769,6 @@ const styles = StyleSheet.create({
   markBtnText: { fontSize: 13, color: '#fff', fontWeight: 'bold' },
   markBtnSub: { fontSize: 11, color: '#ffe082', marginTop: 2 },
   markHint: { fontSize: 11, color: '#b0d4f1', textAlign: 'center', marginBottom: 8, lineHeight: 16 },
-
-  // General styles
   title: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginBottom: 8, textAlign: 'center' },
   subtitle: { fontSize: 14, color: '#d0e8ff', marginBottom: 8, textAlign: 'center' },
   dropInfo: { fontSize: 13, color: '#ffe082', marginBottom: 16, fontWeight: 'bold' },

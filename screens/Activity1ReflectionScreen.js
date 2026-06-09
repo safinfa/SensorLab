@@ -6,11 +6,12 @@ import { collection, addDoc, getDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '../firebaseConfig';
 import { Profanity } from '@2toad/profanity';
+import { sendSubmitNotification } from '../utils/notifications';
 
 const profanity = new Profanity();
 
 export default function Activity1ReflectionScreen({ navigation, route }) {
-  const { teamName, prediction, results, dropHeight, objectMass } = route?.params || {};
+  const { teamName, prediction, results, dropHeight, objectMass, location } = route?.params || {};
   const [reflection, setReflection] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -94,8 +95,12 @@ export default function Activity1ReflectionScreen({ navigation, route }) {
         prediction: prediction || '',
         reflection,
         profilePictureUrl,
+        location: location || null,
         createdAt: new Date().toISOString(),
       });
+
+      // Send submit notification
+      sendSubmitNotification('Parachute Drop Challenge');
 
       Alert.alert('Submitted! 🎉', 'Your results have been saved!', [
         { text: 'View Leaderboard', onPress: () => navigation.navigate('Leaderboard', { teamName, activityId: 1 }) }
@@ -129,6 +134,17 @@ export default function Activity1ReflectionScreen({ navigation, route }) {
             {bestDesign.videoUri && (
               <Text style={styles.videoNote}>📹 Best drop video will be uploaded to leaderboard</Text>
             )}
+          </View>
+        )}
+
+        {/* Drop Location */}
+        {location && (
+          <View style={styles.locationBox}>
+            <Text style={styles.locationTitle}>📍 Drop Location</Text>
+            <Text style={styles.locationAddress}>{location.address}</Text>
+            <Text style={styles.locationCoords}>
+              {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+            </Text>
           </View>
         )}
 
@@ -209,6 +225,15 @@ const styles = StyleSheet.create({
   bestTime: { fontSize: 32, fontWeight: 'bold', color: '#ffe082', marginBottom: 4 },
   bestForce: { fontSize: 13, color: '#4caf50', fontWeight: 'bold' },
   videoNote: { fontSize: 12, color: '#b0d4f1', marginTop: 8, fontStyle: 'italic' },
+  locationBox: {
+    width: '100%', backgroundColor: 'rgba(76,175,80,0.15)',
+    borderRadius: 16, padding: 14, marginBottom: 16,
+    alignItems: 'center', borderWidth: 1,
+    borderColor: 'rgba(76,175,80,0.4)',
+  },
+  locationTitle: { fontSize: 13, fontWeight: 'bold', color: '#4caf50', marginBottom: 4 },
+  locationAddress: { fontSize: 13, color: '#fff', textAlign: 'center', marginBottom: 4 },
+  locationCoords: { fontSize: 11, color: '#b0d4f1' },
   allResultsBox: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 16, padding: 16, marginBottom: 16,

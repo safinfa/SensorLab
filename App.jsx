@@ -1,7 +1,8 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, Text } from 'react-native';
-import React from 'react';
+import React, { useEffect } from 'react';
+import { requestNotificationPermission, scheduleDailyReminder } from './utils/notifications';
 import Activity1IntroScreen from './screens/Activity1IntroScreen';
 import Activity1InstructionsScreen from './screens/Activity1InstructionsScreen';
 import Activity1ChallengeScreen from './screens/Activity1ChallengeScreen';
@@ -67,6 +68,21 @@ class ErrorBoundary extends React.Component {
 }
 
 export default function App() {
+
+  useEffect(() => {
+    const setupNotifications = async () => {
+      try {
+        const granted = await requestNotificationPermission();
+        if (granted) {
+          await scheduleDailyReminder();
+        }
+      } catch (e) {
+        console.log('Notification setup error:', e);
+      }
+    };
+    setupNotifications();
+  }, []);
+
   return (
     <ErrorBoundary>
       <NavigationContainer>

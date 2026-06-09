@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { collection, addDoc, getDoc, doc } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
 import { Profanity } from '@2toad/profanity';
+import { sendSubmitNotification } from '../utils/notifications';
 
 const profanity = new Profanity();
 
@@ -69,6 +70,10 @@ export default function Activity2ReflectionScreen({ navigation, route }) {
         profilePictureUrl,
         createdAt: new Date().toISOString(),
       });
+
+      // Send submit notification
+      sendSubmitNotification('Sound Pollution Hunter');
+
       Alert.alert('Submitted! 🎉', 'Your results have been saved!', [
         { text: 'View Leaderboard', onPress: () => navigation.navigate('Leaderboard', { teamName, activityId: 2 }) }
       ]);

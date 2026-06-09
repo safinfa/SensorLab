@@ -1,10 +1,12 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Speech from 'expo-speech';
 import { useState } from 'react';
 import { collection, addDoc, getDoc, doc } from 'firebase/firestore';
-import { auth, db } from '../firebaseConfig';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, db, storage } from '../firebaseConfig';
 import { Profanity } from '@2toad/profanity';
+import { sendSubmitNotification } from '../utils/notifications';
 
 const profanity = new Profanity();
 
@@ -13,6 +15,7 @@ export default function Activity3ReflectionScreen({ navigation, route }) {
   const [reflection, setReflection] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
 
   const reflectionPrompt = 'Time to reflect! Think about your hand fan results. Which design bent the paper the most? Did distance make a big difference? Was cardboard harder to bend than paper? Write your thoughts below.';
 
@@ -60,19 +63,46 @@ export default function Activity3ReflectionScreen({ navigation, route }) {
         }
       } catch (e) {}
 
+      // Upload photos to Firebase Storage
+      setUploadProgress('Uploading photos...');
+      const resultsWithUrls = await Promise.all(results.map(async (r) => {
+        if (!r.photoUri) return { ...r, photoUri: null, photoUrl: null };
+        try {
+          const response = await fetch(r.photoUri);
+          const blob = await response.blob();
+          const storageRef = ref(storage, `activity3/${user?.uid}/${Date.now()}_${r.design}_${r.distance}.jpg`);
+          await uploadBytes(storageRef, blob);
+          const photoUrl = await getDownloadURL(storageRef);
+          return { ...r, photoUri: null, photoUrl };
+        } catch (e) {
+          console.log('Photo upload error:', e);
+          return { ...r, photoUri: null, photoUrl: null };
+        }
+      }));
+
+      setUploadProgress('Saving results...');
+
+      // Get best reading with photo url
+      const bestWithUrl = resultsWithUrls.reduce((b, r) =>
+        r.actualAngle > b.actualAngle ? r : b, resultsWithUrls[0]);
+
       await addDoc(collection(db, 'leaderboard'), {
         teamName: teamName || 'Unknown Team',
         userId: user?.uid || 'anonymous',
         activityId: 3,
         activityName: 'Hand Fan Challenge',
         totalScore,
-        bestReading: best,
-        results,
+        bestReading: bestWithUrl,
+        results: resultsWithUrls,
         prediction: prediction || '',
         reflection,
         profilePictureUrl,
         createdAt: new Date().toISOString(),
       });
+
+      // Send submit notification
+      sendSubmitNotification('Hand Fan Challenge');
+
       Alert.alert('Submitted! 🎉', 'Your results have been saved!', [
         { text: 'View Leaderboard', onPress: () => navigation.navigate('Leaderboard', { teamName, activityId: 3 }) }
       ]);
@@ -100,6 +130,12 @@ export default function Activity3ReflectionScreen({ navigation, route }) {
             <Text style={styles.bestAngle}>{best.actualAngle}°</Text>
             <Text style={styles.bestDetail}>{best.design} — {best.material} at {best.distance}</Text>
             <Text style={styles.bestForce}>Estimated Force: {best.estimatedForce} N</Text>
+            {best.photoUri && (
+              <Image
+                source={{ uri: best.photoUri }}
+                style={styles.bestPhoto}
+              />
+            )}
           </View>
         )}
 
@@ -123,8 +159,20 @@ export default function Activity3ReflectionScreen({ navigation, route }) {
           textAlignVertical="top"
         />
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={submitting}>
-          <Text style={styles.submitButtonText}>{submitting ? 'Submitting...' : 'Submit & View Leaderboard'}</Text>
+        {uploadProgress ? (
+          <View style={styles.progressBox}>
+            <Text style={styles.progressText}>⏳ {uploadProgress}</Text>
+          </View>
+        ) : null}
+
+        <TouchableOpacity
+          style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
+          onPress={handleSubmit}
+          disabled={submitting}
+        >
+          <Text style={styles.submitButtonText}>
+            {submitting ? uploadProgress || 'Submitting...' : 'Submit & View Leaderboard'}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.endButton} onPress={() => navigation.navigate('Home', { teamName })}>
@@ -157,6 +205,10 @@ const styles = StyleSheet.create({
   bestAngle: { fontSize: 48, fontWeight: 'bold', color: '#ffe082', marginBottom: 4 },
   bestDetail: { fontSize: 13, color: '#d0e8ff', marginBottom: 4, textAlign: 'center' },
   bestForce: { fontSize: 13, color: '#4caf50', fontWeight: 'bold' },
+  bestPhoto: {
+    width: '100%', height: 160, borderRadius: 12,
+    marginTop: 12, resizeMode: 'cover',
+  },
   questionsBox: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 16, padding: 16, marginBottom: 16,
@@ -169,10 +221,16 @@ const styles = StyleSheet.create({
     minHeight: 120, marginBottom: 20, borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)',
   },
+  progressBox: {
+    width: '100%', backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12, padding: 12, marginBottom: 12, alignItems: 'center',
+  },
+  progressText: { fontSize: 13, color: '#ffe082' },
   submitButton: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.85)',
     borderRadius: 25, paddingVertical: 14, alignItems: 'center', marginBottom: 12,
   },
+  submitButtonDisabled: { opacity: 0.6 },
   submitButtonText: { fontSize: 15, fontWeight: 'bold', color: '#1a3a5c', letterSpacing: 1 },
   endButton: {
     width: '100%', backgroundColor: 'rgba(255,255,255,0.15)',

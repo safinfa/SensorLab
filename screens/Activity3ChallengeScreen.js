@@ -1,12 +1,13 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 
 const DESIGNS = ['Design 1', 'Design 2', 'Design 3'];
 const DISTANCES = ['15cm', '30cm', '45cm'];
 const MATERIALS = ['Paper', 'Cardboard'];
 
-// Stiffness coefficients for force calculation
 const STIFFNESS = { Paper: 0.05, Cardboard: 0.5 };
 
 const calculateForce = (material, angleDegrees) => {
@@ -18,27 +19,59 @@ const calculateForce = (material, angleDegrees) => {
 export default function Activity3ChallengeScreen({ navigation, route }) {
   const { teamName, prediction } = route?.params || {};
 
-  // Current position in the test matrix
   const [designIndex, setDesignIndex] = useState(0);
   const [distanceIndex, setDistanceIndex] = useState(0);
   const [materialIndex, setMaterialIndex] = useState(0);
-  const [phase, setPhase] = useState('input'); // input | confirm | done
-
-  // Current reading inputs
+  const [phase, setPhase] = useState('input');
   const [predictedAngle, setPredictedAngle] = useState('');
   const [actualAngle, setActualAngle] = useState('');
   const [notes, setNotes] = useState('');
-
-  // All recorded results
   const [allResults, setAllResults] = useState([]);
+  const [cameraVisible, setCameraVisible] = useState(false);
+  const [currentPhoto, setCurrentPhoto] = useState(null);
+  const [permission, requestPermission] = useCameraPermissions();
+
+  const cameraRef = useRef(null);
 
   const currentDesign = DESIGNS[designIndex];
   const currentDistance = DISTANCES[distanceIndex];
   const currentMaterial = MATERIALS[materialIndex];
-
-  const totalReadings = DESIGNS.length * DISTANCES.length * MATERIALS.length; // 18
+  const totalReadings = DESIGNS.length * DISTANCES.length * MATERIALS.length;
   const currentReading = designIndex * (DISTANCES.length * MATERIALS.length) +
     materialIndex * DISTANCES.length + distanceIndex + 1;
+
+  const takePhoto = async () => {
+    if (!permission?.granted) {
+      const { granted } = await requestPermission();
+      if (!granted) {
+        Alert.alert('Permission needed', 'Please allow camera access.');
+        return;
+      }
+    }
+    setCameraVisible(true);
+  };
+
+  const capturePhoto = async () => {
+    if (!cameraRef.current) return;
+    try {
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
+      setCurrentPhoto(photo.uri);
+      setCameraVisible(false);
+    } catch (e) {
+      Alert.alert('Error', 'Could not take photo. Please try again.');
+    }
+  };
+
+  const pickFromGallery = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.7,
+    });
+    if (!result.canceled) {
+      setCurrentPhoto(result.assets[0].uri);
+    }
+  };
 
   const handleSaveReading = () => {
     if (!actualAngle || isNaN(parseFloat(actualAngle))) {
@@ -57,17 +90,17 @@ export default function Activity3ChallengeScreen({ navigation, route }) {
       actualAngle: angle,
       estimatedForce: force,
       notes,
+      photoUri: currentPhoto || null,
     };
 
     const newResults = [...allResults, reading];
     setAllResults(newResults);
 
-    // Move to next reading
     setPredictedAngle('');
     setActualAngle('');
     setNotes('');
+    setCurrentPhoto(null);
 
-    // Progress through matrix: distance → material → design
     if (distanceIndex + 1 < DISTANCES.length) {
       setDistanceIndex(prev => prev + 1);
     } else if (materialIndex + 1 < MATERIALS.length) {
@@ -87,6 +120,32 @@ export default function Activity3ChallengeScreen({ navigation, route }) {
     return allResults.reduce((best, r) => r.actualAngle > best.actualAngle ? r : best, allResults[0]);
   };
 
+  // Full screen camera
+  if (cameraVisible) {
+    return (
+      <View style={styles.fullScreenCamera}>
+        <CameraView
+          ref={cameraRef}
+          style={StyleSheet.absoluteFill}
+          facing="back"
+        />
+        <View style={styles.cameraTopOverlay}>
+          <Text style={styles.cameraTopText}>
+            📐 Capture the bend angle — {currentDesign} | {currentMaterial} | {currentDistance}
+          </Text>
+        </View>
+        <View style={styles.cameraBottomControls}>
+          <TouchableOpacity style={styles.captureButton} onPress={capturePhoto}>
+            <View style={styles.captureButtonInner} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.cameraBackButton} onPress={() => setCameraVisible(false)}>
+            <Text style={styles.cameraBackText}>← Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <LinearGradient colors={['#4a90d9', '#1a3a5c']} style={styles.gradient}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -95,7 +154,6 @@ export default function Activity3ChallengeScreen({ navigation, route }) {
         {phase === 'input' && (
           <View style={styles.centeredBox}>
 
-            {/* Progress */}
             <View style={styles.progressBox}>
               <Text style={styles.progressText}>Reading {currentReading} of {totalReadings}</Text>
               <View style={styles.progressBarBg}>
@@ -103,7 +161,6 @@ export default function Activity3ChallengeScreen({ navigation, route }) {
               </View>
             </View>
 
-            {/* Current Test Info */}
             <View style={styles.testInfoBox}>
               <Text style={styles.testInfoTitle}>Current Test:</Text>
               <Text style={styles.testInfoRow}>🪭 Fan: <Text style={styles.testInfoValue}>{currentDesign}</Text></Text>
@@ -141,6 +198,31 @@ export default function Activity3ChallengeScreen({ navigation, route }) {
               multiline
             />
 
+            {/* Photo section */}
+            <Text style={styles.label}>📸 Photo Proof of Bend Angle</Text>
+            {currentPhoto ? (
+              <View style={styles.photoPreviewBox}>
+                <Image source={{ uri: currentPhoto }} style={styles.photoPreview} />
+                <View style={styles.photoActions}>
+                  <TouchableOpacity style={styles.retakeBtn} onPress={takePhoto}>
+                    <Text style={styles.retakeBtnText}>📷 Retake</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.removeBtn} onPress={() => setCurrentPhoto(null)}>
+                    <Text style={styles.removeBtnText}>✕ Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.photoButtonRow}>
+                <TouchableOpacity style={styles.photoBtn} onPress={takePhoto}>
+                  <Text style={styles.photoBtnText}>📷 Take Photo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.photoBtn} onPress={pickFromGallery}>
+                  <Text style={styles.photoBtnText}>🖼️ Gallery</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {actualAngle ? (
               <View style={styles.forcePreview}>
                 <Text style={styles.forceLabel}>Estimated Force:</Text>
@@ -156,13 +238,13 @@ export default function Activity3ChallengeScreen({ navigation, route }) {
               </Text>
             </TouchableOpacity>
 
-            {/* Previous results mini list */}
             {allResults.length > 0 && (
               <View style={styles.prevResultsBox}>
                 <Text style={styles.prevResultsTitle}>Previous Readings:</Text>
                 {allResults.slice(-3).map((r, i) => (
                   <Text key={i} style={styles.prevResultItem}>
                     {r.design} | {r.material} | {r.distance} → {r.actualAngle}° ({r.estimatedForce}N)
+                    {r.photoUri ? ' 📸' : ''}
                   </Text>
                 ))}
               </View>
@@ -177,7 +259,6 @@ export default function Activity3ChallengeScreen({ navigation, route }) {
             <Text style={styles.title}>🎉 All Done!</Text>
             <Text style={styles.subtitle}>Here are your results:</Text>
 
-            {/* Best reading highlight */}
             {getBestReading() && (
               <View style={styles.bestCard}>
                 <Text style={styles.bestTitle}>🏆 Biggest Bend!</Text>
@@ -185,19 +266,32 @@ export default function Activity3ChallengeScreen({ navigation, route }) {
                 <Text style={styles.bestDetail}>
                   {getBestReading().design} — {getBestReading().material} at {getBestReading().distance}
                 </Text>
+                {getBestReading().photoUri && (
+                  <Image
+                    source={{ uri: getBestReading().photoUri }}
+                    style={styles.bestPhoto}
+                  />
+                )}
               </View>
             )}
 
-            {/* Results by design */}
             {DESIGNS.map((design) => (
               <View key={design} style={styles.designResultBox}>
                 <Text style={styles.designResultTitle}>{design}</Text>
                 {allResults
                   .filter(r => r.design === design)
                   .map((r, i) => (
-                    <View key={i} style={styles.resultRow}>
-                      <Text style={styles.resultLabel}>{r.material} @ {r.distance}</Text>
-                      <Text style={styles.resultValue}>{r.actualAngle}° — {r.estimatedForce}N</Text>
+                    <View key={i}>
+                      <View style={styles.resultRow}>
+                        <Text style={styles.resultLabel}>{r.material} @ {r.distance}</Text>
+                        <Text style={styles.resultValue}>{r.actualAngle}° — {r.estimatedForce}N</Text>
+                      </View>
+                      {r.photoUri && (
+                        <Image
+                          source={{ uri: r.photoUri }}
+                          style={styles.resultPhoto}
+                        />
+                      )}
                     </View>
                   ))
                 }
@@ -224,6 +318,76 @@ const styles = StyleSheet.create({
   gradient: { flex: 1 },
   container: { flexGrow: 1, paddingTop: 60, paddingBottom: 40, paddingHorizontal: 24 },
   centeredBox: { width: '100%', alignItems: 'center' },
+
+  // Full screen camera
+  fullScreenCamera: { flex: 1, backgroundColor: '#000' },
+  cameraTopOverlay: {
+    position: 'absolute', top: 60, left: 0, right: 0,
+    alignItems: 'center', zIndex: 10, paddingHorizontal: 20,
+  },
+  cameraTopText: {
+    color: '#fff', fontSize: 13, fontWeight: 'bold',
+    backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 16,
+    paddingVertical: 8, borderRadius: 20, textAlign: 'center',
+  },
+  cameraBottomControls: {
+    position: 'absolute', bottom: 60, left: 0, right: 0,
+    alignItems: 'center', zIndex: 10,
+  },
+  captureButton: {
+    width: 80, height: 80, borderRadius: 40,
+    borderWidth: 4, borderColor: '#fff',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 20,
+  },
+  captureButtonInner: {
+    width: 60, height: 60, borderRadius: 30,
+    backgroundColor: '#fff',
+  },
+  cameraBackButton: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20,
+  },
+  cameraBackText: { color: '#fff', fontSize: 14 },
+
+  // Photo section
+  photoPreviewBox: { width: '100%', marginBottom: 16 },
+  photoPreview: {
+    width: '100%', height: 200, borderRadius: 16,
+    marginBottom: 8, resizeMode: 'cover',
+  },
+  photoActions: { flexDirection: 'row', gap: 8 },
+  retakeBtn: {
+    flex: 1, backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 12, paddingVertical: 10, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+  },
+  retakeBtnText: { fontSize: 13, color: '#fff' },
+  removeBtn: {
+    flex: 1, backgroundColor: 'rgba(244,67,54,0.2)',
+    borderRadius: 12, paddingVertical: 10, alignItems: 'center',
+    borderWidth: 1, borderColor: '#f44336',
+  },
+  removeBtnText: { fontSize: 13, color: '#ff8a80' },
+  photoButtonRow: { flexDirection: 'row', gap: 8, width: '100%', marginBottom: 16 },
+  photoBtn: {
+    flex: 1, backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 12, paddingVertical: 12, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+  },
+  photoBtnText: { fontSize: 13, color: '#fff', fontWeight: '600' },
+
+  // Best card photo
+  bestPhoto: {
+    width: '100%', height: 160, borderRadius: 12,
+    marginTop: 12, resizeMode: 'cover',
+  },
+
+  // Result photo
+  resultPhoto: {
+    width: '100%', height: 120, borderRadius: 10,
+    marginBottom: 8, marginTop: 4, resizeMode: 'cover',
+  },
+
   progressBox: { width: '100%', marginBottom: 20 },
   progressText: { fontSize: 13, color: '#ffe082', fontWeight: 'bold', textAlign: 'center', marginBottom: 8 },
   progressBarBg: {

@@ -1,8 +1,9 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Modal, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { db, auth } from '../firebaseConfig';
 import { useState, useEffect } from 'react';
+import { checkAndNotifyRankDrop } from '../utils/notifications';
 
 const ACTIVITIES = [
   { id: 1, name: 'Parachute Drop Challenge' },
@@ -37,12 +38,21 @@ export default function LeaderboardScreen({ navigation, route }) {
         orderBy('totalScore', 'desc')
       );
       const snapshot = await getDocs(q);
+      const user = auth.currentUser;
       const data = snapshot.docs.map((doc, index) => ({
         id: doc.id,
         rank: index + 1,
         ...doc.data(),
       }));
       setEntries(data);
+
+      // Check if current user's rank dropped and notify
+      if (user) {
+        const myEntry = data.find(e => e.userId === user.uid);
+        if (myEntry) {
+          checkAndNotifyRankDrop(user.uid, selectedActivity, myEntry.rank);
+        }
+      }
     } catch (error) {
       console.error('Leaderboard fetch error:', error);
     } finally {

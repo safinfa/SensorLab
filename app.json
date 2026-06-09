@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Allow STEMM Lab to access your location to tag where the parachute drop was performed.",
+        "NSLocationAlwaysUsageDescription": "Allow STEMM Lab to access your location to tag where the parachute drop was performed."
+      }
     },
     "android": {
       "jsEngine": "hermes",
@@ -22,7 +26,14 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": false,
-      "package": "com.safinfa.SensorLab"
+      "package": "com.safinfa.SensorLab",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -35,6 +46,20 @@
           "cameraPermission": "Allow STEMM Lab to access your camera to detect parachute drops",
           "microphonePermission": "Allow STEMM Lab to access your microphone",
           "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow STEMM Lab to access your location to tag where the parachute drop was performed."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/logo.png",
+          "color": "#4a90d9",
+          "sounds": []
         }
       ]
     ],

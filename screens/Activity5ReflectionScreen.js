@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { collection, addDoc, getDoc, doc } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
 import { Profanity } from '@2toad/profanity';
+import { sendSubmitNotification } from '../utils/notifications';
 
 const profanity = new Profanity();
 
@@ -77,11 +78,11 @@ export default function Activity5ReflectionScreen({ navigation, route }) {
         createdAt: new Date().toISOString(),
       });
 
-      Alert.alert('Submitted! 🎉', 'Your results have been saved to the leaderboard!', [
-        {
-          text: 'View Leaderboard',
-          onPress: () => navigation.navigate('Leaderboard', { teamName, activityId: 5 }),
-        },
+      // Send submit notification
+      sendSubmitNotification('Stretch Speed & Gracefulness');
+
+      Alert.alert('Submitted! 🎉', 'Your results have been saved!', [
+        { text: 'View Leaderboard', onPress: () => navigation.navigate('Leaderboard', { teamName, activityId: 5 }) }
       ]);
     } catch (error) {
       Alert.alert('Error', 'Could not save results. Please try again.');
